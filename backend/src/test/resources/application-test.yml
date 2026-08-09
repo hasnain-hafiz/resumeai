@@ -1,0 +1,27 @@
+spring:
+  flyway:
+    enabled: true
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: test-client-id
+            client-secret: test-client-secret
+
+app:
+  security:
+    jwt:
+      secret: test-secret-key-not-for-production-use-only-in-tests-0123456789
+      access-token-ttl-seconds: 900
+      refresh-token-ttl-days: 30
+  frontend:
+    base-url: http://localhost:5173
+    oauth-redirect-url: http://localhost:5173/oauth/callback
+  cors:
+    allowed-origins: http://localhost:5173
+  mail:
+    from: ResumeAI <no-reply@resumeai.app>
