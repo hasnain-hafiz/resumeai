@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 import { GuestOnlyRoute, ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { useAuthStore } from "@/store/authStore";
 import LoginPage from "@/pages/auth/Login";
 import RegisterPage from "@/pages/auth/Register";
 import CheckYourEmailPage from "@/pages/auth/CheckYourEmail";
@@ -7,15 +8,26 @@ import VerifyEmailPage from "@/pages/auth/VerifyEmail";
 import ForgotPasswordPage from "@/pages/auth/ForgotPassword";
 import ResetPasswordPage from "@/pages/auth/ResetPassword";
 import OAuthCallbackPage from "@/pages/auth/OAuthCallback";
+import DashboardPage from "@/pages/Dashboard";
+import { ComingSoonPage } from "@/pages/ComingSoon";
 
-// Placeholder until Feature 2 (Dashboard) is built - keeps ProtectedRoute
-// meaningfully testable end-to-end for this feature's review.
-function DashboardPlaceholder() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-paper-50 dark:bg-ink-950">
-      <p className="text-ink-900 dark:text-paper-50">You're logged in. Dashboard lands in Feature 2.</p>
-    </div>
-  );
+// Routes the Dashboard links to that belong to features later in the build
+// order. Each becomes a real page when its own feature ships - listing them
+// here just keeps today's dashboard links from dead-ending.
+const UPCOMING_ROUTES: { path: string; title: string; feature: string }[] = [
+  { path: "/resumes", title: "Your resumes", feature: "Resume Builder" },
+  { path: "/resumes/new", title: "New resume", feature: "Resume Builder" },
+  { path: "/cover-letters", title: "Your cover letters", feature: "AI Cover Letter Generator" },
+  { path: "/cover-letters/new", title: "New cover letter", feature: "AI Cover Letter Generator" },
+  { path: "/ats", title: "ATS analyses", feature: "AI ATS Optimizer" },
+  { path: "/ats/new", title: "New ATS check", feature: "AI ATS Optimizer" },
+  { path: "/interview-coach", title: "Interview coach", feature: "AI Interview Coach" },
+  { path: "/settings", title: "Settings", feature: "User Settings" },
+];
+
+function NotFound() {
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  return <Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />;
 }
 
 export function AppRouter() {
@@ -36,12 +48,24 @@ export function AppRouter() {
           path="/dashboard"
           element={
             <ProtectedRoute>
-              <DashboardPlaceholder />
+              <DashboardPage />
             </ProtectedRoute>
           }
         />
 
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {UPCOMING_ROUTES.map(({ path, title, feature }) => (
+          <Route
+            key={path}
+            path={path}
+            element={
+              <ProtectedRoute>
+                <ComingSoonPage title={title} feature={feature} />
+              </ProtectedRoute>
+            }
+          />
+        ))}
+
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

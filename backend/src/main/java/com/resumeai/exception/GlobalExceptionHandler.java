@@ -2,6 +2,7 @@ package com.resumeai.exception;
 
 import com.resumeai.dto.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
         List<ErrorResponse.FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
             .map(fe -> new ErrorResponse.FieldError(fe.getField(), fe.getDefaultMessage()))
+            .toList();
+        return build(HttpStatus.BAD_REQUEST, "Validation failed", request, fieldErrors);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex, HttpServletRequest request) {
+        List<ErrorResponse.FieldError> fieldErrors = ex.getConstraintViolations().stream()
+            .map(v -> new ErrorResponse.FieldError(v.getPropertyPath().toString(), v.getMessage()))
             .toList();
         return build(HttpStatus.BAD_REQUEST, "Validation failed", request, fieldErrors);
     }

@@ -79,6 +79,10 @@ app:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   mail:
     from: ${MAIL_FROM:ResumeAI <no-reply@resumeai.app>}
+  ai:
+    # Placeholder until the Subscriptions/Billing feature lands with real,
+    # plan-based quotas. Every account is treated as the free tier for now.
+    free-monthly-quota: ${AI_FREE_MONTHLY_QUOTA:50}
 
 springdoc:
   swagger-ui:
