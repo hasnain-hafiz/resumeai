@@ -12,6 +12,7 @@ import com.resumeai.repository.PasswordResetTokenRepository;
 import com.resumeai.repository.UserRepository;
 import com.resumeai.repository.VerificationTokenRepository;
 import com.resumeai.security.JwtTokenProvider;
+import com.resumeai.service.ActivityEventService;
 import com.resumeai.service.impl.AuthServiceImpl;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +44,7 @@ class AuthServiceImplTest {
     @Mock private EmailService emailService;
     @Mock private UserMapper userMapper;
     @Mock private HttpServletRequest httpServletRequest;
+    @Mock private ActivityEventService activityEventService;
 
     @InjectMocks
     private AuthServiceImpl authService;

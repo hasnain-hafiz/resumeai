@@ -6,6 +6,8 @@ This repository is being built **feature by feature**, per the project's output 
 
 **Feature 1 — Authentication: ✅ complete.** See [`docs/FEATURE_1_AUTHENTICATION.md`](docs/FEATURE_1_AUTHENTICATION.md) for the full write-up.
 
+**Feature 2 — Dashboard: ✅ complete.** See [`docs/FEATURE_2_DASHBOARD.md`](docs/FEATURE_2_DASHBOARD.md) for the full write-up.
+
 ## Tech stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router, React Hook Form, TanStack Query, Axios, Zod, Zustand
@@ -52,4 +54,4 @@ cd frontend && npm run test        # frontend unit tests (added as features grow
 
 ## What's next
 
-Feature 2 — **Dashboard** (welcome card, resume/cover-letter/ATS counts, AI usage, recent activity, quick actions, profile completion) is next once Feature 1 is reviewed and approved.
+Feature 3 — **Resume Builder** (personal info, professional summary, experience, education, projects, skills, certifications, and the rest of the resume data model) is next once Feature 2 is reviewed and approved. It will extend the `resumes` table this feature introduced rather than redefining it.

@@ -4,6 +4,7 @@ import com.resumeai.dto.request.*;
 import com.resumeai.dto.response.AuthResponse;
 import com.resumeai.dto.response.UserResponse;
 import com.resumeai.entity.PasswordResetToken;
+import com.resumeai.entity.ActivityEvent;
 import com.resumeai.entity.User;
 import com.resumeai.entity.VerificationToken;
 import com.resumeai.exception.*;
@@ -12,6 +13,7 @@ import com.resumeai.repository.PasswordResetTokenRepository;
 import com.resumeai.repository.UserRepository;
 import com.resumeai.repository.VerificationTokenRepository;
 import com.resumeai.security.JwtTokenProvider;
+import com.resumeai.service.ActivityEventService;
 import com.resumeai.service.AuthService;
 import com.resumeai.service.EmailService;
 import com.resumeai.service.RefreshTokenService;
@@ -46,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
     private final UserMapper userMapper;
+    private final ActivityEventService activityEventService;
 
     @Override
     @Transactional
@@ -65,6 +68,7 @@ public class AuthServiceImpl implements AuthService {
         userRepository.save(user);
 
         issueVerificationToken(user);
+        activityEventService.record(user, ActivityEvent.Type.ACCOUNT_CREATED, "Account created");
     }
 
     @Override
@@ -213,7 +217,9 @@ public class AuthServiceImpl implements AuthService {
         if (request.photoUrl() != null) {
             user.setPhotoUrl(request.photoUrl());
         }
-        return userMapper.toResponse(userRepository.save(user));
+        User saved = userRepository.save(user);
+        activityEventService.record(saved, ActivityEvent.Type.PROFILE_UPDATED, "Profile updated");
+        return userMapper.toResponse(saved);
     }
 
     @Override
