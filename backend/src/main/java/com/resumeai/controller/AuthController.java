@@ -29,7 +29,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse> register(@Valid @RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-            .body(ApiResponse.of("Account created. Please check your email to verify your address."));
+            .body(ApiResponse.of("Check your inbox to verify your email address."));
     }
 
     @PostMapping("/login")

@@ -10,7 +10,7 @@ interface QuickAction {
 // no backend endpoint behind them. Each target route lands as its own
 // feature (Resume Builder, AI Cover Letter Generator, ATS Optimizer).
 const QUICK_ACTIONS: QuickAction[] = [
-  { label: "New resume", description: "Start from a template or blank page", href: "/resumes/new" },
+  { label: "New resume", description: "Start from a template or blank page", href: "/resumes" },
   { label: "Write a cover letter", description: "Let AI draft one from your resume", href: "/cover-letters/new" },
   { label: "Run an ATS check", description: "See how you score against a job post", href: "/ats/new" },
   { label: "Practice interview questions", description: "AI-generated questions for your role", href: "/interview-coach" },

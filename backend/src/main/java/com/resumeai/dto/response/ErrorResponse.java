@@ -8,6 +8,8 @@ public record ErrorResponse(
     int status,
     String error,
     String message,
+    /** Stable, machine-readable identifier (e.g. "EMAIL_NOT_VERIFIED") for clients to branch on. Null for generic/unexpected errors. */
+    String code,
     String path,
     List<FieldError> fieldErrors
 ) {

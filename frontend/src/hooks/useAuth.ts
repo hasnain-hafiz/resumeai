@@ -9,6 +9,12 @@ export function apiErrorMessage(error: unknown, fallback = "Something went wrong
   return axiosError.response?.data?.message ?? fallback;
 }
 
+/** Reads the stable error code (e.g. "EMAIL_NOT_VERIFIED") so UI can branch on it instead of matching message text. */
+export function apiErrorCode(error: unknown): string | null {
+  const axiosError = error as AxiosError<ApiErrorResponse>;
+  return axiosError.response?.data?.code ?? null;
+}
+
 export function useLogin() {
   const setSession = useAuthStore((s) => s.setSession);
 

@@ -21,7 +21,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -99,18 +102,63 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
-    void registerRejectsDuplicateEmail() throws Exception {
-        RegisterRequest request = new RegisterRequest("Grace Hopper", "duplicate@example.com", "Password1");
+    void registerResendsVerificationInsteadOfConflictWhenUnverified() throws Exception {
+        RegisterRequest request = new RegisterRequest("Grace Hopper", "unverified-duplicate@example.com", "Password1");
 
         mockMvc.perform(post("/api/v1/auth/register")
                 .contentType("application/json")
                 .content(objectMapper.writeValueAsString(request)))
             .andExpect(status().isCreated());
 
+        // Same email, never verified - this used to dead-end with 409 CONFLICT and no
+        // way back in. It should now just send a fresh verification link.
         mockMvc.perform(post("/api/v1/auth/register")
                 .contentType("application/json")
                 .content(objectMapper.writeValueAsString(request)))
-            .andExpect(status().isConflict());
+            .andExpect(status().isCreated());
+
+        verify(emailService, times(2))
+            .sendVerificationEmail(eq("unverified-duplicate@example.com"), anyString(), anyString());
+
+        // And that second link actually works.
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService, atLeastOnce())
+            .sendVerificationEmail(eq("unverified-duplicate@example.com"), anyString(), tokenCaptor.capture());
+        String latestToken = tokenCaptor.getAllValues().get(tokenCaptor.getAllValues().size() - 1);
+
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(new VerifyEmailRequest(latestToken))))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(new LoginRequest("unverified-duplicate@example.com", "Password1"))))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    void registerRejectsDuplicateOnceEmailIsVerified() throws Exception {
+        RegisterRequest request = new RegisterRequest("Grace Hopper", "verified-duplicate@example.com", "Password1");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isCreated());
+
+        ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+        verify(emailService).sendVerificationEmail(eq("verified-duplicate@example.com"), anyString(), tokenCaptor.capture());
+        mockMvc.perform(post("/api/v1/auth/verify-email")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(new VerifyEmailRequest(tokenCaptor.getValue()))))
+            .andExpect(status().isOk());
+
+        // Now that it's verified, a repeat registration is a genuine conflict again.
+        mockMvc.perform(post("/api/v1/auth/register")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_IN_USE"));
     }
 
     @Test

@@ -53,7 +53,22 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public void register(RegisterRequest request) {
-        if (userRepository.existsByEmailIgnoreCase(request.email())) {
+        var existing = userRepository.findByEmailIgnoreCase(request.email());
+
+        if (existing.isPresent()) {
+            User existingUser = existing.get();
+            // The common "I registered, never got around to verifying, the link
+            // expired, and now I'm locked out of both registering again AND
+            // logging in" dead end: if this is a local account that was never
+            // verified, treat a repeat registration as "send me a new link"
+            // instead of a conflict. This is safe - completing verification
+            // still requires access to that inbox, so it can't be used to take
+            // over an account someone else registered. The existing password is
+            // left untouched so a stray retry can't clobber real credentials.
+            if (existingUser.getProvider() == User.AuthProvider.LOCAL && !existingUser.isEmailVerified()) {
+                issueVerificationToken(existingUser);
+                return;
+            }
             throw new EmailAlreadyInUseException(request.email());
         }
 
