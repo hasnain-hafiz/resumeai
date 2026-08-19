@@ -35,6 +35,8 @@ export interface ApiErrorResponse {
   status: number;
   error: string;
   message: string;
+  /** Stable identifier (e.g. "EMAIL_NOT_VERIFIED") for branching logic - prefer this over parsing `message`. */
+  code: string | null;
   path: string;
   fieldErrors: ApiFieldError[] | null;
 }

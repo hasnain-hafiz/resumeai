@@ -9,14 +9,14 @@ import ForgotPasswordPage from "@/pages/auth/ForgotPassword";
 import ResetPasswordPage from "@/pages/auth/ResetPassword";
 import OAuthCallbackPage from "@/pages/auth/OAuthCallback";
 import DashboardPage from "@/pages/Dashboard";
+import ResumeListPage from "@/pages/resumes/ResumeList";
+import ResumeEditorPage from "@/pages/resumes/ResumeEditor";
 import { ComingSoonPage } from "@/pages/ComingSoon";
 
 // Routes the Dashboard links to that belong to features later in the build
 // order. Each becomes a real page when its own feature ships - listing them
 // here just keeps today's dashboard links from dead-ending.
 const UPCOMING_ROUTES: { path: string; title: string; feature: string }[] = [
-  { path: "/resumes", title: "Your resumes", feature: "Resume Builder" },
-  { path: "/resumes/new", title: "New resume", feature: "Resume Builder" },
   { path: "/cover-letters", title: "Your cover letters", feature: "AI Cover Letter Generator" },
   { path: "/cover-letters/new", title: "New cover letter", feature: "AI Cover Letter Generator" },
   { path: "/ats", title: "ATS analyses", feature: "AI ATS Optimizer" },
@@ -49,6 +49,23 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resumes"
+          element={
+            <ProtectedRoute>
+              <ResumeListPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resumes/:resumeId"
+          element={
+            <ProtectedRoute>
+              <ResumeEditorPage />
             </ProtectedRoute>
           }
         />

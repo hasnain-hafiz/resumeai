@@ -37,4 +37,36 @@ public class Resume extends BaseEntity {
     @Column(nullable = false, length = 200)
     @Builder.Default
     private String title = "Untitled Resume";
+
+    // ---- Personal information ----
+    @Column(name = "full_name", length = 120)
+    private String fullName;
+
+    @Column(length = 180)
+    private String email;
+
+    @Column(length = 40)
+    private String phone;
+
+    @Column(length = 255)
+    private String address;
+
+    @Column(name = "linkedin_url", length = 255)
+    private String linkedinUrl;
+
+    @Column(name = "github_url", length = 255)
+    private String githubUrl;
+
+    @Column(name = "portfolio_url", length = 255)
+    private String portfolioUrl;
+
+    @Column(name = "website_url", length = 255)
+    private String websiteUrl;
+
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
+    // ---- Professional summary (rich text, stored as HTML) ----
+    @Column(columnDefinition = "TEXT")
+    private String summary;
 }

@@ -67,20 +67,50 @@ class AuthServiceImplTest {
     }
 
     @Test
-    void register_throwsWhenEmailAlreadyExists() {
+    void register_throwsWhenVerifiedAccountAlreadyExists() {
         RegisterRequest request = new RegisterRequest("Ada Lovelace", "ada@example.com", "Password1");
-        when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(true);
+        existingUser.setEmailVerified(true);
+        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(existingUser));
 
         assertThatThrownBy(() -> authService.register(request))
             .isInstanceOf(EmailAlreadyInUseException.class);
 
         verify(userRepository, never()).save(any());
+        verify(emailService, never()).sendVerificationEmail(any(), any(), any());
+    }
+
+    @Test
+    void register_resendsVerificationInsteadOfConflictWhenExistingAccountIsUnverified() {
+        RegisterRequest request = new RegisterRequest("Ada Lovelace", "ada@example.com", "Password1");
+        existingUser.setEmailVerified(false);
+        existingUser.setProvider(User.AuthProvider.LOCAL);
+        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(existingUser));
+
+        // Should not throw - this is the "link expired, closed the page" recovery path.
+        authService.register(request);
+
+        // A brand new user is never created, and the existing password is left untouched...
+        verify(userRepository, never()).save(any());
+        verify(passwordEncoder, never()).encode(any());
+        // ...but a fresh verification email does go out.
+        verify(emailService).sendVerificationEmail(eq("ada@example.com"), eq("Ada Lovelace"), anyString());
+    }
+
+    @Test
+    void register_throwsWhenExistingGoogleAccountHasSameEmail() {
+        RegisterRequest request = new RegisterRequest("Ada Lovelace", "ada@example.com", "Password1");
+        existingUser.setProvider(User.AuthProvider.GOOGLE);
+        existingUser.setEmailVerified(true);
+        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.of(existingUser));
+
+        assertThatThrownBy(() -> authService.register(request))
+            .isInstanceOf(EmailAlreadyInUseException.class);
     }
 
     @Test
     void register_hashesPasswordAndSendsVerificationEmail() {
         RegisterRequest request = new RegisterRequest("Ada Lovelace", "ada@example.com", "Password1");
-        when(userRepository.existsByEmailIgnoreCase("ada@example.com")).thenReturn(false);
+        when(userRepository.findByEmailIgnoreCase("ada@example.com")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("Password1")).thenReturn("hashed-password");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
