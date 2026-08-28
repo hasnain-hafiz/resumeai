@@ -61,6 +61,11 @@ export default function ResumeListPage() {
                 <p className="mb-1 truncate font-display text-lg text-ink-950 dark:text-paper-50">{resume.title}</p>
                 <p className="text-xs text-ink-900/45 dark:text-paper-50/45">
                   Updated {new Date(resume.updatedAt).toLocaleDateString()}
+                  {resume.templateKey && (
+                    <span className="ml-2 rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-medium text-accent dark:bg-accent/15">
+                      {resume.templateKey.replace(/-/g, " ")}
+                    </span>
+                  )}
                 </p>
               </button>
 

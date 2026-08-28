@@ -5,6 +5,7 @@ import com.resumeai.dto.request.LoginRequest;
 import com.resumeai.dto.request.RegisterRequest;
 import com.resumeai.dto.request.VerifyEmailRequest;
 import com.resumeai.service.EmailService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -50,6 +52,11 @@ class DashboardControllerIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockBean private EmailService emailService;
+
+    @BeforeEach
+    void resetEmailServiceMock() {
+        clearInvocations(emailService);
+    }
 
     @Test
     void unauthenticatedRequestIsRejected() throws Exception {

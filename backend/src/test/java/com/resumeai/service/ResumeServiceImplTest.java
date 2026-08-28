@@ -1,10 +1,12 @@
 package com.resumeai.service;
 
 import com.resumeai.dto.request.resume.CreateResumeRequest;
+import com.resumeai.dto.request.resume.SelectTemplateRequest;
 import com.resumeai.dto.request.resume.UpdateResumeDetailsRequest;
 import com.resumeai.dto.response.resume.ResumeResponse;
 import com.resumeai.dto.response.resume.ResumeSummaryResponse;
 import com.resumeai.entity.Resume;
+import com.resumeai.entity.ResumeTemplate;
 import com.resumeai.entity.User;
 import com.resumeai.exception.ResourceNotFoundException;
 import com.resumeai.mapper.ResumeMapper;
@@ -43,6 +45,7 @@ class ResumeServiceImplTest {
     @Mock private ResumeReferenceRepository referenceRepository;
     @Mock private ResumeCustomSectionRepository customSectionRepository;
     @Mock private ResumeCustomSectionItemRepository customSectionItemRepository;
+    @Mock private ResumeTemplateRepository resumeTemplateRepository;
     @Mock private ResumeMapper resumeMapper;
     @Mock private ActivityEventService activityEventService;
 
@@ -65,7 +68,7 @@ class ResumeServiceImplTest {
     void createDefaultsTitleWhenBlank() {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(resumeMapper.toSummaryResponse(any(Resume.class)))
-            .thenAnswer(inv -> new ResumeSummaryResponse(resume.getId(), inv.<Resume>getArgument(0).getTitle(), null, null, null, null));
+            .thenAnswer(inv -> new ResumeSummaryResponse(resume.getId(), inv.<Resume>getArgument(0).getTitle(), null, null, null, null, null));
 
         ResumeSummaryResponse response = resumeService.create(user.getId(), new CreateResumeRequest("  "));
 
@@ -79,7 +82,7 @@ class ResumeServiceImplTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(resumeMapper.toSummaryResponse(any(Resume.class))).thenAnswer(inv -> {
             Resume saved = inv.getArgument(0);
-            return new ResumeSummaryResponse(saved.getId(), saved.getTitle(), saved.getFullName(), saved.getPhotoUrl(), null, null);
+            return new ResumeSummaryResponse(saved.getId(), saved.getTitle(), saved.getFullName(), saved.getPhotoUrl(), null, null, null);
         });
 
         ResumeSummaryResponse response = resumeService.create(user.getId(), new CreateResumeRequest("My Resume"));
@@ -103,7 +106,7 @@ class ResumeServiceImplTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(resumeRepository.findByUserOrderByUpdatedAtDesc(user)).thenReturn(List.of(resume));
         when(resumeMapper.toSummaryResponse(resume))
-            .thenReturn(new ResumeSummaryResponse(resume.getId(), resume.getTitle(), null, null, null, null));
+            .thenReturn(new ResumeSummaryResponse(resume.getId(), resume.getTitle(), null, null, null, null, null));
 
         List<ResumeSummaryResponse> result = resumeService.listForUser(user.getId());
 
@@ -173,5 +176,49 @@ class ResumeServiceImplTest {
         when(resumeMapper.toPublicationResponseList(any())).thenReturn(List.of());
         when(resumeMapper.toVolunteerExperienceResponseList(any())).thenReturn(List.of());
         when(resumeMapper.toReferenceResponseList(any())).thenReturn(List.of());
+    }
+
+    @Test
+    void selectTemplateSetsTemplateOnResume() {
+        ResumeTemplate template = ResumeTemplate.builder()
+            .key("modern").name("Modern").category(ResumeTemplate.Category.MODERN).build();
+        UUID templateId = UUID.randomUUID();
+        template.setId(templateId);
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(resumeRepository.findByIdAndUser(resume.getId(), user)).thenReturn(Optional.of(resume));
+        when(resumeTemplateRepository.findById(templateId)).thenReturn(Optional.of(template));
+        stubEmptySections();
+
+        resumeService.selectTemplate(resume.getId(), user.getId(), new SelectTemplateRequest(templateId));
+
+        assertThat(resume.getTemplate()).isEqualTo(template);
+        verify(resumeRepository).save(resume);
+    }
+
+    @Test
+    void selectTemplateWithNullIdClearsSelection() {
+        ResumeTemplate template = ResumeTemplate.builder().key("modern").name("Modern").category(ResumeTemplate.Category.MODERN).build();
+        template.setId(UUID.randomUUID());
+        resume.setTemplate(template);
+
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(resumeRepository.findByIdAndUser(resume.getId(), user)).thenReturn(Optional.of(resume));
+        stubEmptySections();
+
+        resumeService.selectTemplate(resume.getId(), user.getId(), new SelectTemplateRequest(null));
+
+        assertThat(resume.getTemplate()).isNull();
+    }
+
+    @Test
+    void selectTemplateThrowsWhenTemplateIdUnknown() {
+        UUID unknownTemplateId = UUID.randomUUID();
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(resumeRepository.findByIdAndUser(resume.getId(), user)).thenReturn(Optional.of(resume));
+        when(resumeTemplateRepository.findById(unknownTemplateId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> resumeService.selectTemplate(resume.getId(), user.getId(), new SelectTemplateRequest(unknownTemplateId)))
+            .isInstanceOf(ResourceNotFoundException.class);
     }
 }

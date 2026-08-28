@@ -10,3 +10,50 @@
     @apply bg-paper-50 text-ink-900 font-sans dark:bg-ink-950 dark:text-paper-50;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Resume Templates: A4 page sizing + print support                    */
+/* ------------------------------------------------------------------ */
+
+/* On screen, a resume page always renders as a literal A4 sheet (210mm x
+   297mm) regardless of the surrounding page's zoom/theme, so what you see
+   is what prints. Multi-page resumes simply keep flowing below this height -
+   the browser's print engine paginates automatically at @page boundaries. */
+.resume-a4-page {
+  box-sizing: border-box;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  /* Print only the resume page itself, not the app chrome around it (nav,
+     buttons, sidebars). Elements outside .resume-print-root are hidden;
+     .resume-a4-page is pulled out to the top of the printed page. */
+  body * {
+    visibility: hidden;
+  }
+  .resume-print-root,
+  .resume-print-root * {
+    visibility: visible;
+  }
+  .resume-print-root {
+    position: absolute;
+    inset: 0;
+  }
+  .resume-a4-page {
+    box-shadow: none !important;
+    transform: none !important;
+    margin: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  /* Keep section content from splitting awkwardly across a page break where avoidable. */
+  section {
+    break-inside: avoid;
+  }
+}
+

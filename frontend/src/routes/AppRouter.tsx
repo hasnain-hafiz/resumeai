@@ -11,6 +11,8 @@ import OAuthCallbackPage from "@/pages/auth/OAuthCallback";
 import DashboardPage from "@/pages/Dashboard";
 import ResumeListPage from "@/pages/resumes/ResumeList";
 import ResumeEditorPage from "@/pages/resumes/ResumeEditor";
+import TemplateGalleryPage from "@/pages/resumes/TemplateGallery";
+import ResumePreviewPage from "@/pages/resumes/ResumePreview";
 import { ComingSoonPage } from "@/pages/ComingSoon";
 
 // Routes the Dashboard links to that belong to features later in the build
@@ -66,6 +68,22 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <ResumeEditorPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resumes/:resumeId/templates"
+          element={
+            <ProtectedRoute>
+              <TemplateGalleryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/resumes/:resumeId/preview"
+          element={
+            <ProtectedRoute>
+              <ResumePreviewPage />
             </ProtectedRoute>
           }
         />

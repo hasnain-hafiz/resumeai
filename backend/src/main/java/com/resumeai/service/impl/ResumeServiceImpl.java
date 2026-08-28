@@ -1,6 +1,7 @@
 package com.resumeai.service.impl;
 
 import com.resumeai.dto.request.resume.CreateResumeRequest;
+import com.resumeai.dto.request.resume.SelectTemplateRequest;
 import com.resumeai.dto.request.resume.UpdateResumeDetailsRequest;
 import com.resumeai.dto.response.resume.*;
 import com.resumeai.entity.*;
@@ -34,6 +35,7 @@ public class ResumeServiceImpl implements ResumeService {
     private final ResumeReferenceRepository referenceRepository;
     private final ResumeCustomSectionRepository customSectionRepository;
     private final ResumeCustomSectionItemRepository customSectionItemRepository;
+    private final ResumeTemplateRepository resumeTemplateRepository;
     private final ResumeMapper resumeMapper;
     private final ActivityEventService activityEventService;
 
@@ -98,6 +100,23 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Override
     @Transactional
+    public ResumeResponse selectTemplate(UUID resumeId, UUID userId, SelectTemplateRequest request) {
+        Resume resume = getOwnedResumeOrThrow(resumeId, userId);
+
+        if (request.templateId() == null) {
+            resume.setTemplate(null);
+        } else {
+            ResumeTemplate template = resumeTemplateRepository.findById(request.templateId())
+                .orElseThrow(() -> new ResourceNotFoundException("Template not found"));
+            resume.setTemplate(template);
+        }
+        resumeRepository.save(resume);
+
+        return assembleResponse(resume);
+    }
+
+    @Override
+    @Transactional
     public void delete(UUID resumeId, UUID userId) {
         Resume resume = getOwnedResumeOrThrow(resumeId, userId);
         resume.markDeleted(); // soft delete; child rows remain but become invisible via cascading queries on resume
@@ -145,6 +164,7 @@ public class ResumeServiceImpl implements ResumeService {
             resume.getWebsiteUrl(),
             resume.getPhotoUrl(),
             resume.getSummary(),
+            resumeMapper.toTemplateResponse(resume.getTemplate()),
             resumeMapper.toExperienceResponseList(experienceRepository.findByResumeOrderBySortOrderAsc(resume)),
             resumeMapper.toEducationResponseList(educationRepository.findByResumeOrderBySortOrderAsc(resume)),
             projects,

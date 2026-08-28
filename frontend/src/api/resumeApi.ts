@@ -8,8 +8,11 @@ export const resumeApi = {
 
   get: (resumeId: string) => apiClient.get<Resume>(`/resumes/${resumeId}`).then((r) => r.data),
 
-  updateDetails: (resumeId: string, payload: Omit<Resume, "id" | "experience" | "education" | "projects" | "listItems" | "certifications" | "awards" | "publications" | "volunteerExperience" | "references" | "customSections" | "createdAt" | "updatedAt">) =>
+  updateDetails: (resumeId: string, payload: Omit<Resume, "id" | "template" | "experience" | "education" | "projects" | "listItems" | "certifications" | "awards" | "publications" | "volunteerExperience" | "references" | "customSections" | "createdAt" | "updatedAt">) =>
     apiClient.put<Resume>(`/resumes/${resumeId}`, payload).then((r) => r.data),
+
+  selectTemplate: (resumeId: string, templateId: string | null) =>
+    apiClient.patch<Resume>(`/resumes/${resumeId}/template`, { templateId }).then((r) => r.data),
 
   delete: (resumeId: string) => apiClient.delete(`/resumes/${resumeId}`).then((r) => r.data),
 };

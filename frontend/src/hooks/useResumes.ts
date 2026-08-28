@@ -44,6 +44,17 @@ export function useDeleteResume() {
   });
 }
 
+export function useSelectTemplate(resumeId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (templateId: string | null) => resumeApi.selectTemplate(resumeId, templateId),
+    onSuccess: (updated) => {
+      queryClient.setQueryData(["resumes", resumeId], updated);
+      queryClient.invalidateQueries({ queryKey: ["resumes"] });
+    },
+  });
+}
+
 /**
  * Builds add/update/remove mutations for one resume sub-section. Every
  * section's mutations invalidate the same resume query, since the section

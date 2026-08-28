@@ -22,13 +22,14 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.mockito.Mockito.clearInvocations;
 
 @Testcontainers
 @SpringBootTest
@@ -55,8 +56,11 @@ class ResumeControllerIntegrationTest {
     @MockBean private EmailService emailService;
 
     private String registerVerifyAndLogin(String email) throws Exception {
+        // Reset here, not just once per test: this helper is called more than
+        // once within a single test (e.g. cannotAccessAnotherUsersResume registers
+        // two separate users), and each call's own verify() below should only see
+        // that call's invocation, not accumulate across repeated calls.
         clearInvocations(emailService);
-
         doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), anyString());
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -206,5 +210,57 @@ class ResumeControllerIntegrationTest {
 
         mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", "Bearer " + intruderToken))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void canBrowseAndSelectATemplate() throws Exception {
+        // The catalog is public - no Authorization header at all.
+        String catalogResponse = mockMvc.perform(get("/api/v1/templates"))
+            .andExpect(status().isOk())
+            // Seeded by V4__resume_templates_schema.sql - at least the 20 required templates.
+            .andExpect(jsonPath("$.length()").value(org.hamcrest.Matchers.greaterThanOrEqualTo(20)))
+            .andReturn().getResponse().getContentAsString();
+
+        String modernTemplateId = null;
+        for (var node : objectMapper.readTree(catalogResponse)) {
+            if ("modern".equals(node.get("key").asText())) {
+                modernTemplateId = node.get("id").asText();
+                break;
+            }
+        }
+        assertThat(modernTemplateId).as("seeded 'modern' template should be in the catalog").isNotNull();
+
+        String token = registerVerifyAndLogin("template-user@example.com");
+        String auth = "Bearer " + token;
+
+        String createResponse = mockMvc.perform(post("/api/v1/resumes")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(new CreateResumeRequest("Templated Resume"))))
+            .andReturn().getResponse().getContentAsString();
+        String resumeId = objectMapper.readTree(createResponse).get("id").asText();
+
+        // No template selected yet.
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.template").doesNotExist());
+
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/template")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"templateId\":\"" + modernTemplateId + "\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.template.key").value("modern"));
+
+        // It shows up in the resume list summary too, e.g. for a thumbnail.
+        mockMvc.perform(get("/api/v1/resumes").header("Authorization", auth))
+            .andExpect(jsonPath("$[0].templateKey").value("modern"));
+
+        // Clearing it (null templateId) removes the selection.
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/template")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"templateId\":null}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.template").doesNotExist());
     }
 }

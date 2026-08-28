@@ -9,6 +9,7 @@ public record ResumeSummaryResponse(
     String title,
     String fullName,
     String photoUrl,
+    String templateKey,
     Instant createdAt,
     Instant updatedAt
 ) {}

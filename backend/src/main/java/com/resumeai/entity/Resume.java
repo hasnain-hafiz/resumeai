@@ -15,10 +15,10 @@ import lombok.Setter;
 import org.hibernate.annotations.SQLRestriction;
 
 /**
- * Deliberately minimal for now - just enough for the Dashboard to count and
- * list resumes. The Resume Builder feature will add columns for template,
- * sections, content (likely JSONB) etc. via its own migration, not redefine
- * this table.
+ * Core resume aggregate root. Personal info, professional summary, and the
+ * selected template live directly on this table; every other section
+ * (experience, education, projects, ...) is a child entity referencing this
+ * one by {@code resume_id} - see the other {@code Resume*} entities.
  */
 @Entity
 @Table(name = "resumes", indexes = @Index(name = "idx_resumes_user_id", columnList = "user_id"))
@@ -69,4 +69,9 @@ public class Resume extends BaseEntity {
     // ---- Professional summary (rich text, stored as HTML) ----
     @Column(columnDefinition = "TEXT")
     private String summary;
+
+    // ---- Selected template (Feature 4) ----
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "template_id")
+    private ResumeTemplate template;
 }

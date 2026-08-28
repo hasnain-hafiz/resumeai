@@ -5,6 +5,7 @@ import com.resumeai.dto.request.LoginRequest;
 import com.resumeai.dto.request.RegisterRequest;
 import com.resumeai.dto.request.VerifyEmailRequest;
 import com.resumeai.service.EmailService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -62,6 +64,14 @@ class AuthControllerIntegrationTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockBean private EmailService emailService;
+
+    @BeforeEach
+    void resetEmailServiceMock() {
+        // The Spring context (and this @MockBean) is cached and shared across every
+        // @Test method in this class, so invocation counts from a previous test
+        // would otherwise leak into this one's verify(...) assertions.
+        clearInvocations(emailService);
+    }
 
     @Test
     void fullRegisterVerifyLoginFlow() throws Exception {
