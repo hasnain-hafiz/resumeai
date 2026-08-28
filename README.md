@@ -10,6 +10,8 @@ This repository is being built **feature by feature**, per the project's output 
 
 **Feature 3 — Resume Builder: ✅ complete.** See [`docs/FEATURE_3_RESUME_BUILDER.md`](docs/FEATURE_3_RESUME_BUILDER.md) for the full write-up.
 
+**Feature 4 — Resume Templates: ✅ complete.** See [`docs/FEATURE_4_RESUME_TEMPLATES.md`](docs/FEATURE_4_RESUME_TEMPLATES.md) for the full write-up.
+
 ## Tech stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router, React Hook Form, TanStack Query, Axios, Zod, Zustand
@@ -56,4 +58,4 @@ cd frontend && npm run test        # frontend unit tests (added as features grow
 
 ## What's next
 
-Feature 4 — **Resume Templates** (at least 20 templates - Modern, Minimal, Corporate, Harvard, ATS-Friendly, and more - supporting A4/multi-page/print/PDF) is next once Feature 3 is reviewed and approved.
+Feature 5 — **Live Preview** (instant updates while editing, zoom, page-break visualization, print preview) is next once Feature 4 is reviewed and approved. It builds directly on this feature's `TemplateRenderer`.

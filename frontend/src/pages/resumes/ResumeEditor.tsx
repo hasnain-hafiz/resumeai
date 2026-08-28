@@ -85,12 +85,29 @@ export default function ResumeEditorPage() {
 
   return (
     <AppShell>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <button onClick={() => navigate("/resumes")} className="mb-1 text-xs font-medium text-accent hover:text-accent-hover">
             ← All resumes
           </button>
           <h1 className="font-display text-2xl text-ink-950 dark:text-paper-50">{resume.title}</h1>
+          {resume.template && (
+            <p className="mt-0.5 text-xs text-ink-900/45 dark:text-paper-50/45">Template: {resume.template.name}</p>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate(`/resumes/${resumeId}/templates`)}
+            className="rounded-xl border border-ink-900/10 dark:border-paper-50/15 px-4 py-2 text-sm font-medium text-ink-900 dark:text-paper-50 hover:bg-ink-900/[0.03] dark:hover:bg-paper-50/5"
+          >
+            {resume.template ? "Change template" : "Choose template"}
+          </button>
+          <button
+            onClick={() => navigate(`/resumes/${resumeId}/preview`)}
+            className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover"
+          >
+            Preview
+          </button>
         </div>
       </div>
 

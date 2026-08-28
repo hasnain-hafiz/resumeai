@@ -10,7 +10,11 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ResumeMapper {
 
+    @Mapping(target = "templateKey", source = "template.key")
     ResumeSummaryResponse toSummaryResponse(Resume resume);
+
+    TemplateResponse toTemplateResponse(ResumeTemplate template);
+    List<TemplateResponse> toTemplateResponseList(List<ResumeTemplate> templates);
 
     ExperienceResponse toExperienceResponse(ResumeExperience entity);
     List<ExperienceResponse> toExperienceResponseList(List<ResumeExperience> entities);

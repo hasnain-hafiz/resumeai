@@ -17,6 +17,7 @@ public record ResumeResponse(
     String websiteUrl,
     String photoUrl,
     String summary,
+    TemplateResponse template,
     List<ExperienceResponse> experience,
     List<EducationResponse> education,
     List<ProjectResponse> projects,

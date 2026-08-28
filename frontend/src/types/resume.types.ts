@@ -1,8 +1,11 @@
+import type { Template } from "@/types/template.types";
+
 export interface ResumeSummary {
   id: string;
   title: string;
   fullName: string | null;
   photoUrl: string | null;
+  templateKey: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -149,6 +152,7 @@ export interface Resume {
   websiteUrl: string | null;
   photoUrl: string | null;
   summary: string | null;
+  template: Template | null;
   experience: Experience[];
   education: Education[];
   projects: Project[];

@@ -1,6 +1,7 @@
 package com.resumeai.service;
 
 import com.resumeai.dto.request.resume.CreateResumeRequest;
+import com.resumeai.dto.request.resume.SelectTemplateRequest;
 import com.resumeai.dto.request.resume.UpdateResumeDetailsRequest;
 import com.resumeai.dto.response.resume.ResumeResponse;
 import com.resumeai.dto.response.resume.ResumeSummaryResponse;
@@ -19,6 +20,9 @@ public interface ResumeService {
     ResumeResponse getFull(UUID resumeId, UUID userId);
 
     ResumeResponse updateDetails(UUID resumeId, UUID userId, UpdateResumeDetailsRequest request);
+
+    /** Sets (or, with a null templateId, clears) which template this resume renders with. */
+    ResumeResponse selectTemplate(UUID resumeId, UUID userId, SelectTemplateRequest request);
 
     void delete(UUID resumeId, UUID userId);
 

@@ -1,6 +1,7 @@
 package com.resumeai.controller;
 
 import com.resumeai.dto.request.resume.CreateResumeRequest;
+import com.resumeai.dto.request.resume.SelectTemplateRequest;
 import com.resumeai.dto.request.resume.UpdateResumeDetailsRequest;
 import com.resumeai.dto.response.ApiResponse;
 import com.resumeai.dto.response.resume.ResumeResponse;
@@ -58,6 +59,16 @@ public class ResumeController {
         @Valid @RequestBody UpdateResumeDetailsRequest request
     ) {
         return ResponseEntity.ok(resumeService.updateDetails(resumeId, principal.getId(), request));
+    }
+
+    @PatchMapping("/{resumeId}/template")
+    @Operation(summary = "Set (or, with a null templateId, clear) the resume's template")
+    public ResponseEntity<ResumeResponse> selectTemplate(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID resumeId,
+        @Valid @RequestBody SelectTemplateRequest request
+    ) {
+        return ResponseEntity.ok(resumeService.selectTemplate(resumeId, principal.getId(), request));
     }
 
     @DeleteMapping("/{resumeId}")
