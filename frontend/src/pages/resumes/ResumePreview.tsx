@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { TemplateRenderer } from "@/components/templates/TemplateRenderer";
+import { LivePreviewPanel } from "@/components/resume/LivePreviewPanel";
 import { useResume } from "@/hooks/useResumes";
 import { apiErrorMessage } from "@/hooks/useAuth";
 
@@ -61,9 +61,7 @@ export default function ResumePreviewPage() {
         </p>
       )}
 
-      <div className="resume-print-root flex justify-center overflow-x-auto pb-10">
-        <TemplateRenderer resume={resume} templateKey={resume.template?.key} />
-      </div>
+      <LivePreviewPanel resume={resume} templateKey={resume.template?.key} className="h-[calc(100vh-14rem)]" />
     </AppShell>
   );
 }

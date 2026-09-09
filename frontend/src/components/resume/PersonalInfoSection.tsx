@@ -15,6 +15,7 @@ type DetailsForm = {
   photoUrl: string;
   summary: string;
 };
+export type { DetailsForm };
 
 function toForm(resume: Resume): DetailsForm {
   return {
@@ -50,12 +51,17 @@ function TextField({
 }
 
 export function PersonalInfoSection({
-  resume, onSave, isSaving,
-}: { resume: Resume; onSave: (form: DetailsForm) => void; isSaving: boolean }) {
+  resume, onSave, isSaving, onDraftChange,
+}: { resume: Resume; onSave: (form: DetailsForm) => void; isSaving: boolean; onDraftChange?: (form: DetailsForm) => void }) {
   const [form, setForm] = useState<DetailsForm>(() => toForm(resume));
 
   // Re-sync if a different resume loads (e.g. navigating between resumes).
   useEffect(() => setForm(toForm(resume)), [resume.id]);
+
+  // Report every keystroke upward (not just on save) so the live preview
+  // panel can reflect what's being typed before it's committed to the server -
+  // this is the "instant while editing" half of the Live Preview feature.
+  useEffect(() => onDraftChange?.(form), [form, onDraftChange]);
 
   const set = (key: keyof DetailsForm) => (value: string) => setForm((f) => ({ ...f, [key]: value }));
 
@@ -89,7 +95,10 @@ export function PersonalInfoSection({
         <RichTextEditor value={form.summary} onChange={set("summary")} placeholder="Write a brief summary of your experience..." />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-3">
+        {JSON.stringify(form) !== JSON.stringify(toForm(resume)) && (
+          <p className="text-xs text-ink-900/45 dark:text-paper-50/45">Unsaved changes are already shown in the preview →</p>
+        )}
         <button
           onClick={() => onSave(form)}
           disabled={isSaving}

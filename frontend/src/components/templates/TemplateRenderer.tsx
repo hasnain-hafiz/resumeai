@@ -1,6 +1,9 @@
+import { useEffect, useRef } from "react";
 import { ClassicLayout } from "@/components/templates/ClassicLayout";
 import { SidebarLayout } from "@/components/templates/SidebarLayout";
 import { getTheme } from "@/components/templates/templateThemes";
+import { A4_HEIGHT_MM, A4_WIDTH_MM, usePageCount } from "@/components/templates/pageMetrics";
+import { PageBreakOverlay } from "@/components/templates/PageBreakOverlay";
 import type { Resume } from "@/types/resume.types";
 
 interface TemplateRendererProps {
@@ -8,31 +11,43 @@ interface TemplateRendererProps {
   templateKey: string | null | undefined;
   /** CSS scale factor for thumbnail-sized previews (e.g. 0.22 for a gallery card). Omit for full size. */
   scale?: number;
+  /** Overlay dashed page-break lines + "Page N" labels wherever the content would split across printed pages. */
+  showPageBreaks?: boolean;
+  /** Fires whenever the measured page count changes - lets a parent (e.g. a preview toolbar) show "Page 1 of 3". */
+  onPageCountChange?: (count: number) => void;
 }
 
 /**
- * Renders one A4 page (210mm x 297mm) at the given template's theme. Content
- * that overflows one page height simply continues below it on screen - real
- * pagination for print is handled by the browser's print engine (see
- * index.css's @page/@media print rules), not simulated here. On-screen
- * multi-page visualization (explicit page-break markers, zoom controls) is
- * the Live Preview feature's job, not this one's.
+ * Renders one continuous A4-width column at the given template's theme.
+ * Content that spans more than one printed page simply continues flowing
+ * below the first page's height - real pagination for print is handled by
+ * the browser's print engine (see index.css's @page/@media print rules).
+ * `showPageBreaks` adds an on-screen guide for where those breaks will
+ * actually fall, without changing how anything is laid out.
  */
-export function TemplateRenderer({ resume, templateKey, scale }: TemplateRendererProps) {
+export function TemplateRenderer({ resume, templateKey, scale, showPageBreaks, onPageCountChange }: TemplateRendererProps) {
   const theme = getTheme(templateKey);
   const Layout = theme.layout === "sidebar" ? SidebarLayout : ClassicLayout;
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Re-measure whenever the resume content or template (which can change
+  // section spacing/typography and therefore height) changes, in addition to
+  // the ResizeObserver the hook itself sets up for pure size changes.
+  const pageCount = usePageCount(contentRef, [resume, templateKey]);
+
+  useEffect(() => {
+    onPageCountChange?.(pageCount);
+  }, [pageCount, onPageCountChange]);
 
   return (
     <div
-      className="resume-a4-page overflow-hidden bg-white shadow-card"
-      style={{
-        width: "210mm",
-        minHeight: "297mm",
-        transform: scale ? `scale(${scale})` : undefined,
-        transformOrigin: "top left",
-      }}
+      className="resume-a4-page relative overflow-hidden bg-white shadow-card"
+      style={{ width: `${A4_WIDTH_MM}mm`, transform: scale ? `scale(${scale})` : undefined, transformOrigin: "top left" }}
     >
-      <Layout resume={resume} theme={theme} />
+      <div ref={contentRef} style={{ minHeight: `${A4_HEIGHT_MM}mm` }}>
+        <Layout resume={resume} theme={theme} />
+      </div>
+      {showPageBreaks && <PageBreakOverlay pageCount={pageCount} />}
     </div>
   );
 }
