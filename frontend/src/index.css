@@ -23,6 +23,16 @@
   box-sizing: border-box;
 }
 
+/* Reserves the on-screen, zoomed footprint of a `.resume-a4-page` (see
+   pageMetrics.useMeasuredSize / TemplateRenderer / PrintPreviewPages). Never
+   relevant to the actual print output, which always renders unscaled. */
+@media print {
+  .resume-a4-page-scale-box {
+    width: auto !important;
+    height: auto !important;
+  }
+}
+
 @page {
   size: A4;
   margin: 0;

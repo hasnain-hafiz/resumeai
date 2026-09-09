@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { ClassicLayout } from "@/components/templates/ClassicLayout";
 import { SidebarLayout } from "@/components/templates/SidebarLayout";
 import { getTheme } from "@/components/templates/templateThemes";
-import { A4_HEIGHT_MM, A4_WIDTH_MM, usePageCount } from "@/components/templates/pageMetrics";
+import { A4_HEIGHT_MM, A4_HEIGHT_PX, A4_WIDTH_MM, A4_WIDTH_PX, usePageCount } from "@/components/templates/pageMetrics";
 import type { Resume } from "@/types/resume.types";
 
 interface PrintPreviewPagesProps {
@@ -39,18 +39,28 @@ export function PrintPreviewPages({ resume, templateKey, scale, onPageCountChang
     <div className="flex flex-col items-center gap-8">
       {Array.from({ length: pageCount }, (_, pageIndex) => (
         <div key={pageIndex} className="flex flex-col items-center">
+          {/* Each page has a fixed, known A4 size, so (unlike TemplateRenderer's
+              continuous view) the scaled footprint can be computed directly
+              without measuring - reserving it so the scaled-down/up page
+              doesn't leave a gap or overflow past where the layout thinks it
+              ends (see pageMetrics.useMeasuredSize for the full explanation). */}
           <div
-            className="resume-a4-page overflow-hidden bg-white shadow-card"
-            style={{
-              width: `${A4_WIDTH_MM}mm`,
-              height: `${A4_HEIGHT_MM}mm`,
-              transform: scale ? `scale(${scale})` : undefined,
-              transformOrigin: "top left",
-            }}
+            className="resume-a4-page-scale-box"
+            style={scale ? { width: A4_WIDTH_PX * scale, height: A4_HEIGHT_PX * scale } : undefined}
           >
-            <div style={{ marginTop: `${-pageIndex * A4_HEIGHT_MM}mm` }}>
-              <div ref={pageIndex === 0 ? measureRef : undefined}>
-                <Layout resume={resume} theme={theme} />
+            <div
+              className="resume-a4-page overflow-hidden bg-white shadow-card"
+              style={{
+                width: `${A4_WIDTH_MM}mm`,
+                height: `${A4_HEIGHT_MM}mm`,
+                transform: scale ? `scale(${scale})` : undefined,
+                transformOrigin: "top left",
+              }}
+            >
+              <div style={{ marginTop: `${-pageIndex * A4_HEIGHT_MM}mm` }}>
+                <div ref={pageIndex === 0 ? measureRef : undefined}>
+                  <Layout resume={resume} theme={theme} />
+                </div>
               </div>
             </div>
           </div>

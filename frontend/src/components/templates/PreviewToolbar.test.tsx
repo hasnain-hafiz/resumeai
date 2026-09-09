@@ -78,4 +78,26 @@ describe("PreviewToolbar", () => {
     rerender(<PreviewToolbar zoom={1} onZoomChange={vi.fn()} viewMode="continuous" onViewModeChange={vi.fn()} pageCount={3} />);
     expect(screen.getByText("3 pages")).toBeInTheDocument();
   });
+
+  it("shows a Fit button only when onFitToScreen is provided, and calls it when clicked", async () => {
+    const user = userEvent.setup();
+    const handleFit = vi.fn();
+    const { rerender } = render(
+      <PreviewToolbar zoom={1} onZoomChange={vi.fn()} viewMode="continuous" onViewModeChange={vi.fn()} pageCount={1} />
+    );
+    expect(screen.queryByRole("button", { name: "Fit" })).not.toBeInTheDocument();
+
+    rerender(
+      <PreviewToolbar
+        zoom={1}
+        onZoomChange={vi.fn()}
+        viewMode="continuous"
+        onViewModeChange={vi.fn()}
+        pageCount={1}
+        onFitToScreen={handleFit}
+      />
+    );
+    await user.click(screen.getByRole("button", { name: "Fit" }));
+    expect(handleFit).toHaveBeenCalledTimes(1);
+  });
 });

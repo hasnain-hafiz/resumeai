@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Project } from "@/types/resume.types";
 
 type ProjectForm = { title: string; description: string; technologies: string; githubUrl: string; liveUrl: string; sortOrder: number };
@@ -15,13 +15,31 @@ interface Props {
   onAddImage: (projectId: string, url: string) => void;
   onDeleteImage: (projectId: string, imageId: string) => void;
   isSaving?: boolean;
+  /** See GenericListSection's onDraftItems - same "unsaved form state, live" contract. */
+  onDraftItems?: (items: Project[] | undefined) => void;
 }
 
-export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, onDeleteImage, isSaving }: Props) {
+export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, onDeleteImage, isSaving, onDraftItems }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<ProjectForm>(emptyForm());
   const [imageUrlDraft, setImageUrlDraft] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!onDraftItems) return;
+    if (adding) {
+      onDraftItems([...items, { id: "__draft_new__", ...form, images: [] }]);
+    } else if (editingId) {
+      onDraftItems(items.map((item) => (item.id === editingId ? { ...item, ...form } : item)));
+    } else {
+      onDraftItems(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, adding, editingId, items]);
+
+  const onDraftItemsRef = useRef(onDraftItems);
+  onDraftItemsRef.current = onDraftItems;
+  useEffect(() => () => onDraftItemsRef.current?.(undefined), []);
 
   const startAdd = () => { setForm(emptyForm()); setAdding(true); setEditingId(null); };
   const startEdit = (item: Project) => {

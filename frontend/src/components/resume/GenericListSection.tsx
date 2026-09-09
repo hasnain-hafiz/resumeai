@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 export interface FieldConfig {
   name: string;
@@ -19,6 +19,14 @@ interface GenericListSectionProps<T extends { id: string; sortOrder: number }> {
   onUpdate: (id: string, values: Record<string, string>) => void;
   onDelete: (id: string) => void;
   isSaving?: boolean;
+  /**
+   * Reports the list as it would look with the in-progress add/edit form
+   * merged in (or `undefined` when there's no unsaved edit), on every
+   * keystroke - lets a parent feed this straight into the live preview
+   * without waiting for the add/update mutation to round-trip and refetch.
+   * No API calls are made here; this is purely local, unsaved form state.
+   */
+  onDraftItems?: (items: T[] | undefined) => void;
 }
 
 function emptyValues(fields: FieldConfig[]): Record<string, string> {
@@ -40,10 +48,34 @@ export function GenericListSection<T extends { id: string; sortOrder: number }>(
   onUpdate,
   onDelete,
   isSaving,
+  onDraftItems,
 }: GenericListSectionProps<T>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [formValues, setFormValues] = useState<Record<string, string>>(emptyValues(fields));
+
+  // Live-preview draft reporting: while a field is being typed into (add or
+  // edit), tell the parent what the list would look like with that unsaved
+  // value merged in, so the preview updates instantly instead of waiting for
+  // the Add/Save button's mutation to complete and the resume to refetch.
+  useEffect(() => {
+    if (!onDraftItems) return;
+    if (adding) {
+      const draftItem = { sortOrder: items.length, ...formValues, id: "__draft_new__" } as unknown as T;
+      onDraftItems([...items, draftItem]);
+    } else if (editingId) {
+      onDraftItems(items.map((item) => (item.id === editingId ? ({ ...item, ...formValues } as T) : item)));
+    } else {
+      onDraftItems(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formValues, adding, editingId, items]);
+
+  // Clear any leftover draft override if this section unmounts (e.g. the
+  // user switches tabs) mid-edit without saving or cancelling.
+  const onDraftItemsRef = useRef(onDraftItems);
+  onDraftItemsRef.current = onDraftItems;
+  useEffect(() => () => onDraftItemsRef.current?.(undefined), []);
 
   const startAdd = () => {
     setFormValues(emptyValues(fields));

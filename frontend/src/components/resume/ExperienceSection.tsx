@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { EmploymentType, Experience } from "@/types/resume.types";
 
 const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
@@ -31,12 +31,30 @@ interface Props {
   onUpdate: (id: string, form: ExperienceForm) => void;
   onDelete: (id: string) => void;
   isSaving?: boolean;
+  /** See GenericListSection's onDraftItems - same "unsaved form state, live" contract. */
+  onDraftItems?: (items: Experience[] | undefined) => void;
 }
 
-export function ExperienceSection({ items, onAdd, onUpdate, onDelete, isSaving }: Props) {
+export function ExperienceSection({ items, onAdd, onUpdate, onDelete, isSaving, onDraftItems }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<ExperienceForm>(emptyForm());
+
+  useEffect(() => {
+    if (!onDraftItems) return;
+    if (adding) {
+      onDraftItems([...items, { id: "__draft_new__", ...form }]);
+    } else if (editingId) {
+      onDraftItems(items.map((item) => (item.id === editingId ? { id: item.id, ...form } : item)));
+    } else {
+      onDraftItems(undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form, adding, editingId, items]);
+
+  const onDraftItemsRef = useRef(onDraftItems);
+  onDraftItemsRef.current = onDraftItems;
+  useEffect(() => () => onDraftItemsRef.current?.(undefined), []);
 
   const startAdd = () => { setForm(emptyForm()); setAdding(true); setEditingId(null); };
   const startEdit = (item: Experience) => {

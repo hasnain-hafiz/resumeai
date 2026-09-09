@@ -16,6 +16,36 @@ export function calculatePageCount(contentHeightPx: number, pageHeightPx: number
 }
 
 /**
+ * Watches a ref'd element's rendered (un-transformed) box size. Used to size
+ * a wrapper around a `transform: scale(...)`'d element: CSS transforms are
+ * paint-time only and don't affect layout, so a scaled element still
+ * reserves its full, un-scaled space in the page - a scaled-down resume
+ * leaves a huge gap where its full size used to be, and a scaled-up resume
+ * overflows its reserved space with no way to scroll to the hidden part.
+ * ResizeObserver reports the border-box size, which (per spec) is also
+ * unaffected by `transform`, so it gives us the real, un-scaled size to
+ * multiply by the current zoom for the wrapper.
+ */
+export function useMeasuredSize(ref: RefObject<HTMLElement | null>): { width: number; height: number } {
+  const [size, setSize] = useState({ width: A4_WIDTH_PX, height: A4_HEIGHT_PX });
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const measure = () => setSize({ width: element.offsetWidth, height: element.offsetHeight });
+    measure();
+
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return size;
+}
+
+/**
  * Watches a ref'd element's rendered height and returns how many A4 pages it
  * would span when printed. Uses ResizeObserver so it stays correct as the
  * user edits (content grows/shrinks) without any manual recalculation calls.

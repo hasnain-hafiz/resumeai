@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { A4_HEIGHT_PX, calculatePageCount } from "@/components/templates/pageMetrics";
+import { render } from "@testing-library/react";
+import { createElement, useRef } from "react";
+import { A4_HEIGHT_PX, A4_WIDTH_PX, calculatePageCount, useMeasuredSize } from "@/components/templates/pageMetrics";
 
 describe("calculatePageCount", () => {
   it("returns 1 page for content shorter than one page height", () => {
@@ -34,5 +36,37 @@ describe("calculatePageCount", () => {
 
   it("falls back to 1 page for a degenerate (zero) page height rather than dividing by zero", () => {
     expect(calculatePageCount(500, 0)).toBe(1);
+  });
+});
+
+describe("useMeasuredSize", () => {
+  it("defaults to the A4 page size before anything has been measured (e.g. ref not yet attached)", () => {
+    let measured: { width: number; height: number } | undefined;
+
+    function Probe() {
+      measured = useMeasuredSize({ current: null });
+      return null;
+    }
+
+    render(createElement(Probe));
+
+    expect(measured).toEqual({ width: A4_WIDTH_PX, height: A4_HEIGHT_PX });
+  });
+
+  it("measures the mounted element's own box size once attached", () => {
+    let measured: { width: number; height: number } | undefined;
+
+    function Probe() {
+      const ref = useRef<HTMLDivElement>(null);
+      measured = useMeasuredSize(ref);
+      return createElement("div", { ref });
+    }
+
+    render(createElement(Probe));
+
+    // Real measurement took over from the A4 default - jsdom reports 0x0 for
+    // layout, which is exactly the point: it's actually reading the element,
+    // not just returning the static fallback forever.
+    expect(measured).toEqual({ width: 0, height: 0 });
   });
 });

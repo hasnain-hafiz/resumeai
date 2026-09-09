@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 
 export type PreviewViewMode = "continuous" | "print";
 
-const ZOOM_MIN = 0.4;
-const ZOOM_MAX = 1.5;
+export const ZOOM_MIN = 0.4;
+export const ZOOM_MAX = 1.5;
 const ZOOM_STEP = 0.1;
 
 interface PreviewToolbarProps {
@@ -12,6 +12,8 @@ interface PreviewToolbarProps {
   viewMode: PreviewViewMode;
   onViewModeChange: (mode: PreviewViewMode) => void;
   pageCount: number;
+  /** Recomputes zoom so the whole A4 page fits the visible panel width. */
+  onFitToScreen?: () => void;
 }
 
 function ZoomButton({ label, disabled, onClick, children }: { label: string; disabled?: boolean; onClick: () => void; children: ReactNode }) {
@@ -28,7 +30,7 @@ function ZoomButton({ label, disabled, onClick, children }: { label: string; dis
   );
 }
 
-export function PreviewToolbar({ zoom, onZoomChange, viewMode, onViewModeChange, pageCount }: PreviewToolbarProps) {
+export function PreviewToolbar({ zoom, onZoomChange, viewMode, onViewModeChange, pageCount, onFitToScreen }: PreviewToolbarProps) {
   const clamp = (value: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(value * 100) / 100));
 
   return (
@@ -48,6 +50,16 @@ export function PreviewToolbar({ zoom, onZoomChange, viewMode, onViewModeChange,
         <ZoomButton label="Zoom in" disabled={zoom >= ZOOM_MAX} onClick={() => onZoomChange(clamp(zoom + ZOOM_STEP))}>
           +
         </ZoomButton>
+        {onFitToScreen && (
+          <button
+            type="button"
+            onClick={onFitToScreen}
+            title="Fit whole page to screen"
+            className="ml-1 rounded-md px-2 py-1 text-xs font-medium text-ink-900/70 hover:bg-ink-900/[0.06] dark:text-paper-50/70 dark:hover:bg-paper-50/10"
+          >
+            Fit
+          </button>
+        )}
       </div>
 
       <div className="flex items-center gap-3">

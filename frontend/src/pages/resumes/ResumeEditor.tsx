@@ -15,7 +15,9 @@ import {
   listItemApi, projectApi, publicationApi, referenceApi, volunteerExperienceApi,
 } from "@/api/resumeSectionsApi";
 import { apiErrorMessage } from "@/hooks/useAuth";
-import type { Education, Resume } from "@/types/resume.types";
+import type {
+  Award, Certification, Education, Experience, Project, Publication, Resume, ResumeReference, VolunteerExperience,
+} from "@/types/resume.types";
 
 const TABS = [
   "Personal Info", "Experience", "Education", "Projects", "Skills",
@@ -34,18 +36,52 @@ export default function ResumeEditorPage() {
 
   // Unsaved Personal Info / Summary edits, reported live by PersonalInfoSection
   // on every keystroke - this is what makes the preview "instant while
-  // editing" rather than only updating after a save. Every other section
-  // (Experience, Skills, ...) already updates the moment its own add/edit/
-  // delete mutation succeeds, which is "live" in the sense that matters for
-  // discrete list items - nobody expects a preview to update mid-keystroke
-  // while filling out an "add experience" form before submitting it.
+  // editing" rather than only updating after a save. See the sectionDrafts
+  // block below for the equivalent treatment of the list-based sections
+  // (Experience, Education, Projects, Certifications, Awards, Publications,
+  // Volunteer, References).
   const [draftDetails, setDraftDetails] = useState<DetailsForm | null>(null);
   useEffect(() => setDraftDetails(null), [resumeId]);
 
+  // Same "unsaved, instant" idea as draftDetails above, generalized to the
+  // list-based sections (Experience, Education, Projects, Certifications,
+  // Awards, Publications, Volunteer, References). Each section reports the
+  // in-progress add/edit form merged into its list on every keystroke - no
+  // API calls, just local state - so the preview reflects it immediately
+  // instead of waiting for the section's mutation to round-trip and refetch.
+  // A key is only present here while that section has an unsaved edit open.
+  type SectionDrafts = {
+    experience?: Experience[];
+    education?: Education[];
+    projects?: Project[];
+    certifications?: Certification[];
+    awards?: Award[];
+    publications?: Publication[];
+    volunteerExperience?: VolunteerExperience[];
+    references?: ResumeReference[];
+  };
+  const [sectionDrafts, setSectionDrafts] = useState<SectionDrafts>({});
+  useEffect(() => setSectionDrafts({}), [resumeId]);
+  const setSectionDraft = <K extends keyof SectionDrafts>(key: K) => (items: SectionDrafts[K] | undefined) =>
+    setSectionDrafts((d) => {
+      if (items === undefined) {
+        // Omit the key entirely rather than setting it to `undefined` -
+        // `previewResume` spreads sectionDrafts over the real resume, and a
+        // present-but-undefined key would still win the spread, clobbering
+        // the real (saved) array with `undefined` instead of falling back
+        // to it.
+        if (!(key in d)) return d;
+        const next = { ...d };
+        delete next[key];
+        return next;
+      }
+      return d[key] === items ? d : { ...d, [key]: items };
+    });
+
   const previewResume: Resume | undefined = useMemo(() => {
     if (!resume) return undefined;
-    return draftDetails ? { ...resume, ...draftDetails } : resume;
-  }, [resume, draftDetails]);
+    return { ...resume, ...(draftDetails ?? {}), ...sectionDrafts };
+  }, [resume, draftDetails, sectionDrafts]);
 
   const experience = useSectionMutations(resumeId ?? "", experienceApi);
   const education = useSectionMutations(resumeId ?? "", educationApi);
@@ -161,6 +197,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, form) => experience.update.mutate({ itemId: id, payload: form })}
               onDelete={(id) => experience.remove.mutate(id)}
               isSaving={experience.add.isPending || experience.update.isPending}
+              onDraftItems={setSectionDraft("experience")}
             />
           )}
 
@@ -182,6 +219,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, values) => education.update.mutate({ itemId: id, payload: { ...values, cgpa: values.cgpa ? Number(values.cgpa) : null, sortOrder: 0 } as never })}
               onDelete={(id) => education.remove.mutate(id)}
               isSaving={education.add.isPending || education.update.isPending}
+              onDraftItems={setSectionDraft("education")}
             />
           )}
 
@@ -194,6 +232,7 @@ export default function ResumeEditorPage() {
               onAddImage={(projectId, url) => addProjectImage.mutate({ projectId, url })}
               onDeleteImage={(projectId, imageId) => deleteProjectImage.mutate({ projectId, imageId })}
               isSaving={projects.add.isPending || projects.update.isPending}
+              onDraftItems={setSectionDraft("projects")}
             />
           )}
 
@@ -221,6 +260,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, values) => certifications.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => certifications.remove.mutate(id)}
               isSaving={certifications.add.isPending || certifications.update.isPending}
+              onDraftItems={setSectionDraft("certifications")}
             />
           )}
 
@@ -240,6 +280,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, values) => awards.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => awards.remove.mutate(id)}
               isSaving={awards.add.isPending || awards.update.isPending}
+              onDraftItems={setSectionDraft("awards")}
             />
           )}
 
@@ -260,6 +301,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, values) => publications.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => publications.remove.mutate(id)}
               isSaving={publications.add.isPending || publications.update.isPending}
+              onDraftItems={setSectionDraft("publications")}
             />
           )}
 
@@ -280,6 +322,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, values) => volunteer.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => volunteer.remove.mutate(id)}
               isSaving={volunteer.add.isPending || volunteer.update.isPending}
+              onDraftItems={setSectionDraft("volunteerExperience")}
             />
           )}
 
@@ -300,6 +343,7 @@ export default function ResumeEditorPage() {
               onUpdate={(id, values) => references.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => references.remove.mutate(id)}
               isSaving={references.add.isPending || references.update.isPending}
+              onDraftItems={setSectionDraft("references")}
             />
           )}
 
