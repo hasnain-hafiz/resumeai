@@ -26,44 +26,47 @@
 /* Reserves the on-screen, zoomed footprint of a `.resume-a4-page` (see
    pageMetrics.useMeasuredSize / TemplateRenderer / PrintPreviewPages). Never
    relevant to the actual print output, which always renders unscaled. */
-@media print {
-  .resume-a4-page-scale-box {
-    width: auto !important;
-    height: auto !important;
-  }
-}
-
 @page {
   size: A4;
   margin: 0;
 }
 
+.resume-print-only {
+  display: none;
+}
+
 @media print {
-  /* Print only the resume page itself, not the app chrome around it (nav,
-     buttons, sidebars). Elements outside .resume-print-root are hidden;
-     .resume-a4-page is pulled out to the top of the printed page. */
-  body * {
-    visibility: hidden;
+  /* The screen preview must not participate in print layout at all. */
+  .resume-preview-screen {
+    display: none !important;
   }
-  .resume-print-root,
-  .resume-print-root * {
-    visibility: visible;
+
+  /* Print uses a separate, natural-size renderer. It is intentionally
+     outside the live-preview scroll/zoom DOM. */
+  .resume-print-only {
+    display: block !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    transform: none !important;
   }
-  .resume-print-root {
-    position: absolute;
-    inset: 0;
-  }
-  .resume-a4-page {
+
+  .resume-print-only .resume-a4-page {
+    width: 210mm !important;
+    margin: 0 !important;
     box-shadow: none !important;
     transform: none !important;
-    margin: 0 !important;
+    overflow: hidden !important;
   }
+
   .no-print {
     display: none !important;
   }
-  /* Keep section content from splitting awkwardly across a page break where avoidable. */
+
+  /* Keep section content from splitting awkwardly across a page break where
+     avoidable. The browser still handles normal multi-page pagination. */
   section {
     break-inside: avoid;
   }
 }
-

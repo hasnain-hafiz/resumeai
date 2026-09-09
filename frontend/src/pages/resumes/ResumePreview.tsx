@@ -1,6 +1,7 @@
 import { useNavigate, useParams } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { LivePreviewPanel } from "@/components/resume/LivePreviewPanel";
+import { TemplateRenderer } from "@/components/templates/TemplateRenderer";
 import { useResume } from "@/hooks/useResumes";
 import { apiErrorMessage } from "@/hooks/useAuth";
 
@@ -28,8 +29,10 @@ export default function ResumePreviewPage() {
   }
 
   return (
-    <AppShell>
-      <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
+    <>
+      <div className="resume-preview-screen">
+        <AppShell>
+          <div className="no-print mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <button onClick={() => navigate(`/resumes/${resumeId}`)} className="mb-1 text-xs font-medium text-accent hover:text-accent-hover">
             ← Back to editor
@@ -61,7 +64,16 @@ export default function ResumePreviewPage() {
         </p>
       )}
 
-      <LivePreviewPanel resume={resume} templateKey={resume.template?.key} className="h-[calc(100vh-14rem)]" />
-    </AppShell>
+          <LivePreviewPanel resume={resume} templateKey={resume.template?.key} className="h-[calc(100vh-14rem)]" />
+        </AppShell>
+      </div>
+
+      <div className="resume-print-only">
+        <TemplateRenderer
+          resume={resume}
+          templateKey={resume.template?.key}
+        />
+      </div>
+    </>
   );
 }

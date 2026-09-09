@@ -115,17 +115,6 @@ export function LivePreviewPanel({ resume, templateKey, compact, className }: Li
               <PrintPreviewPages resume={resume} templateKey={templateKey} scale={zoom} onPageCountChange={setPageCount} />
             )}
           </div>
-          {/* Print output: always the real, continuously-flowing content, regardless of
-              which on-screen mode is active. Print Preview's windowed pages are a visual
-              approximation for on-screen guidance only - printing them directly would
-              include their gaps and "Page X of Y" labels and wouldn't reliably break
-              exactly at each frame boundary, so print always uses the browser's own
-              (correct) pagination via the real content instead. */}
-          {viewMode === "print" && (
-            <div className="hidden print:block">
-              <TemplateRenderer resume={resume} templateKey={templateKey} />
-            </div>
-          )}
         </div>
       </div>
     </div>
