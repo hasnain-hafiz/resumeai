@@ -12,6 +12,8 @@ This repository is being built **feature by feature**, per the project's output 
 
 **Feature 4 — Resume Templates: ✅ complete.** See [`docs/FEATURE_4_RESUME_TEMPLATES.md`](docs/FEATURE_4_RESUME_TEMPLATES.md) for the full write-up.
 
+**Feature 5 — Live Preview: ✅ complete.** See [`docs/FEATURE_5_LIVE_PREVIEW.md`](docs/FEATURE_5_LIVE_PREVIEW.md) for the full write-up.
+
 ## Tech stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router, React Hook Form, TanStack Query, Axios, Zod, Zustand
@@ -58,4 +60,4 @@ cd frontend && npm run test        # frontend unit tests (added as features grow
 
 ## What's next
 
-Feature 5 — **Live Preview** (instant updates while editing, zoom, page-break visualization, print preview) is next once Feature 4 is reviewed and approved. It builds directly on this feature's `TemplateRenderer`.
+Feature 6 — **Drag and Drop** (reordering sections, skills, projects, and experience) is next once Feature 5 is reviewed and approved. It builds on the `sortOrder` column every resume section has carried since Feature 3.

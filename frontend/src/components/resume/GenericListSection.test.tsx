@@ -153,4 +153,70 @@ describe("GenericListSection", () => {
     expect(handleAdd).not.toHaveBeenCalled();
     expect(screen.queryByLabelText("Name")).not.toBeInTheDocument();
   });
+
+  it("reports the in-progress edit to onDraftItems on every keystroke, without calling onUpdate", async () => {
+    const user = userEvent.setup();
+    const handleUpdate = vi.fn();
+    const handleDraft = vi.fn();
+
+    render(
+      <GenericListSection<Certification>
+        title="Certifications"
+        fields={FIELDS}
+        items={EXISTING}
+        titleField="name"
+        subtitleField="issuer"
+        onAdd={vi.fn()}
+        onUpdate={handleUpdate}
+        onDelete={vi.fn()}
+        onDraftItems={handleDraft}
+      />
+    );
+
+    // Mounts with no unsaved edit in progress.
+    expect(handleDraft).toHaveBeenLastCalledWith(undefined);
+
+    await user.click(screen.getByRole("button", { name: /edit/i }));
+    await user.clear(screen.getByLabelText("Issuer"));
+    await user.type(screen.getByLabelText("Issuer"), "A");
+
+    // The unsaved value is reflected in the reported draft list immediately -
+    // before Save is clicked and without ever calling onUpdate.
+    expect(handleDraft).toHaveBeenLastCalledWith([
+      { id: "cert-1", name: "AWS Certified Solutions Architect", issuer: "A", sortOrder: 0 },
+    ]);
+    expect(handleUpdate).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    // Once submitted there's no unsaved edit left to preview - the real,
+    // saved data (invalidated/refetched by the caller) should take over.
+    expect(handleDraft).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("reports a synthetic draft item while adding, before it has a real id", async () => {
+    const user = userEvent.setup();
+    const handleDraft = vi.fn();
+
+    render(
+      <GenericListSection<Certification>
+        title="Certifications"
+        fields={FIELDS}
+        items={[]}
+        titleField="name"
+        subtitleField="issuer"
+        onAdd={vi.fn()}
+        onUpdate={vi.fn()}
+        onDelete={vi.fn()}
+        onDraftItems={handleDraft}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /add/i }));
+    await user.type(screen.getByLabelText("Name"), "PMP");
+
+    const lastCall = handleDraft.mock.calls.at(-1)?.[0];
+    expect(lastCall).toHaveLength(1);
+    expect(lastCall[0]).toMatchObject({ name: "PMP", issuer: "" });
+  });
 });
