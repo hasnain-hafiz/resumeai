@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 import type { TemplateTheme } from "@/components/templates/templateThemes";
 import type {
   Award, Certification, CustomSection, Education, Experience, ListItem, Project, Publication,
@@ -300,4 +300,39 @@ export function SummaryBlock({ html, theme }: { html: string | null; theme: Temp
       />
     </section>
   );
+}
+
+/**
+ * Renders a set of section blocks in the order the user dragged them into
+ * (Feature 6) - `blocks` only needs to include the keys a given layout
+ * actually places in this column (e.g. SidebarLayout omits SKILLS and
+ * CERTIFICATIONS here because those render fixed in its sidebar instead).
+ * Any key missing from `sectionOrder` (shouldn't happen once every resume
+ * is seeded with the full canonical order, but kept defensive) still
+ * renders, appended at the end, so a section can never silently vanish.
+ */
+export function orderedSections(
+  sectionOrder: readonly string[] | null | undefined,
+  blocks: Partial<Record<string, ReactNode>>
+): ReactNode[] {
+  const availableKeys = Object.keys(blocks);
+  const order = sectionOrder && sectionOrder.length > 0 ? sectionOrder : availableKeys;
+
+  const seen = new Set<string>();
+  const result: ReactNode[] = [];
+
+  for (const key of order) {
+    if (blocks[key] !== undefined && !seen.has(key)) {
+      seen.add(key);
+      result.push(<Fragment key={key}>{blocks[key]}</Fragment>);
+    }
+  }
+  for (const key of availableKeys) {
+    if (!seen.has(key)) {
+      seen.add(key);
+      result.push(<Fragment key={key}>{blocks[key]}</Fragment>);
+    }
+  }
+
+  return result;
 }

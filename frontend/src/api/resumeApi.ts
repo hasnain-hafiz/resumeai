@@ -8,11 +8,14 @@ export const resumeApi = {
 
   get: (resumeId: string) => apiClient.get<Resume>(`/resumes/${resumeId}`).then((r) => r.data),
 
-  updateDetails: (resumeId: string, payload: Omit<Resume, "id" | "template" | "experience" | "education" | "projects" | "listItems" | "certifications" | "awards" | "publications" | "volunteerExperience" | "references" | "customSections" | "createdAt" | "updatedAt">) =>
+  updateDetails: (resumeId: string, payload: Omit<Resume, "id" | "template" | "sectionOrder" | "experience" | "education" | "projects" | "listItems" | "certifications" | "awards" | "publications" | "volunteerExperience" | "references" | "customSections" | "createdAt" | "updatedAt">) =>
     apiClient.put<Resume>(`/resumes/${resumeId}`, payload).then((r) => r.data),
 
   selectTemplate: (resumeId: string, templateId: string | null) =>
     apiClient.patch<Resume>(`/resumes/${resumeId}/template`, { templateId }).then((r) => r.data),
+
+  reorderSections: (resumeId: string, sectionOrder: string[]) =>
+    apiClient.patch<Resume>(`/resumes/${resumeId}/sections/reorder`, { sectionOrder }).then((r) => r.data),
 
   delete: (resumeId: string) => apiClient.delete(`/resumes/${resumeId}`).then((r) => r.data),
 };
@@ -31,5 +34,7 @@ export function createSectionApi<TRequest, TResponse>(sectionPath: string) {
       apiClient.put<TResponse>(`/resumes/${resumeId}/${sectionPath}/${itemId}`, payload).then((r) => r.data),
     remove: (resumeId: string, itemId: string) =>
       apiClient.delete(`/resumes/${resumeId}/${sectionPath}/${itemId}`).then((r) => r.data),
+    reorder: (resumeId: string, orderedIds: string[]) =>
+      apiClient.patch(`/resumes/${resumeId}/${sectionPath}/reorder`, { orderedIds }).then((r) => r.data),
   };
 }

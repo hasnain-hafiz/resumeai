@@ -2,6 +2,7 @@ package com.resumeai.service;
 
 import com.resumeai.dto.request.resume.ProjectImageRequest;
 import com.resumeai.dto.request.resume.ProjectRequest;
+import com.resumeai.dto.request.resume.ReorderRequest;
 import com.resumeai.dto.response.resume.ProjectResponse;
 import com.resumeai.entity.Resume;
 import com.resumeai.entity.ResumeProject;
@@ -10,10 +11,12 @@ import com.resumeai.exception.ResourceNotFoundException;
 import com.resumeai.mapper.ResumeMapper;
 import com.resumeai.repository.ResumeProjectImageRepository;
 import com.resumeai.repository.ResumeProjectRepository;
+import com.resumeai.util.ReorderSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -45,6 +48,18 @@ public class ResumeProjectService {
         ResumeProject entity = getOwnedOrThrow(resumeId, projectId, userId);
         entity.markDeleted(); // images are left as-is; they're only ever surfaced through this (now-deleted) project
         projectRepository.save(entity);
+    }
+
+    @Transactional
+    public void reorder(UUID resumeId, UUID userId, ReorderRequest request) {
+        Resume resume = resumeService.getOwnedResumeOrThrow(resumeId, userId);
+        List<ResumeProject> existing = projectRepository.findByResumeOrderBySortOrderAsc(resume);
+        List<ResumeProject> ordered = ReorderSupport.reorder(existing, request.orderedIds(), ResumeProject::getId);
+
+        for (int i = 0; i < ordered.size(); i++) {
+            ordered.get(i).setSortOrder(i);
+        }
+        projectRepository.saveAll(ordered);
     }
 
     @Transactional

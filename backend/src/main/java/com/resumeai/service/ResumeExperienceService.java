@@ -1,16 +1,19 @@
 package com.resumeai.service;
 
 import com.resumeai.dto.request.resume.ExperienceRequest;
+import com.resumeai.dto.request.resume.ReorderRequest;
 import com.resumeai.dto.response.resume.ExperienceResponse;
 import com.resumeai.entity.Resume;
 import com.resumeai.entity.ResumeExperience;
 import com.resumeai.exception.ResourceNotFoundException;
 import com.resumeai.mapper.ResumeMapper;
 import com.resumeai.repository.ResumeExperienceRepository;
+import com.resumeai.util.ReorderSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -32,6 +35,18 @@ public class ResumeExperienceService {
     public ExperienceResponse update(UUID resumeId, UUID experienceId, UUID userId, ExperienceRequest request) {
         ResumeExperience entity = getOwnedOrThrow(resumeId, experienceId, userId);
         return resumeMapper.toExperienceResponse(experienceRepository.save(apply(entity, request)));
+    }
+
+    @Transactional
+    public void reorder(UUID resumeId, UUID userId, ReorderRequest request) {
+        Resume resume = resumeService.getOwnedResumeOrThrow(resumeId, userId);
+        List<ResumeExperience> existing = experienceRepository.findByResumeOrderBySortOrderAsc(resume);
+        List<ResumeExperience> ordered = ReorderSupport.reorder(existing, request.orderedIds(), ResumeExperience::getId);
+
+        for (int i = 0; i < ordered.size(); i++) {
+            ordered.get(i).setSortOrder(i);
+        }
+        experienceRepository.saveAll(ordered);
     }
 
     @Transactional

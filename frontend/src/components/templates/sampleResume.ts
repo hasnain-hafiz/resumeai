@@ -8,6 +8,7 @@ import type { Resume } from "@/types/resume.types";
 export const SAMPLE_RESUME: Resume = {
   id: "sample",
   title: "Sample",
+  sectionOrder: ["EXPERIENCE", "EDUCATION", "PROJECTS", "SKILLS", "CERTIFICATIONS", "AWARDS", "PUBLICATIONS", "VOLUNTEER", "REFERENCES", "CUSTOM_SECTIONS"],
   fullName: "Jordan Avery",
   email: "jordan.avery@email.com",
   phone: "(555) 012-3456",

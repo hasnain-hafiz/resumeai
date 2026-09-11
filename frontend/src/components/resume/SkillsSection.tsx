@@ -1,5 +1,10 @@
 import { useState, type KeyboardEvent } from "react";
+import { useSortable } from "@dnd-kit/sortable";
+import { rectSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { ListItem, ListItemSection, Proficiency } from "@/types/resume.types";
+import { SortableList } from "@/components/resume/dnd/SortableList";
+import { DragHandle, SortableItem } from "@/components/resume/dnd/SortableItem";
 
 const SKILL_GROUPS: { section: ListItemSection; label: string }[] = [
   { section: "TECHNICAL_SKILL", label: "Technical skills" },
@@ -17,9 +22,38 @@ interface Props {
   items: ListItem[];
   onAdd: (section: ListItemSection, value: string, proficiency: Proficiency | null) => void;
   onDelete: (id: string) => void;
+  onReorder?: (section: ListItemSection, orderedIds: string[]) => void;
 }
 
-function TagGroup({ label, section, items, onAdd, onDelete }: { label: string; section: ListItemSection; items: ListItem[]; onAdd: Props["onAdd"]; onDelete: Props["onDelete"] }) {
+/** One draggable skill/tool/etc. pill - the whole pill is the drag target (it's small; a separate handle icon would clutter it). */
+function SortablePill({ item, onDelete }: { item: ListItem; onDelete: (id: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 };
+
+  return (
+    <span
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="inline-flex cursor-grab touch-none items-center gap-1.5 rounded-full bg-accent-soft dark:bg-accent/15 px-2.5 py-1 text-xs text-accent active:cursor-grabbing"
+    >
+      {item.value}
+      <button
+        onClick={() => onDelete(item.id)}
+        onPointerDown={(e) => e.stopPropagation()}
+        aria-label={`Remove ${item.value}`}
+        className="text-accent/60 hover:text-accent"
+      >
+        ×
+      </button>
+    </span>
+  );
+}
+
+function TagGroup({
+  label, section, items, onAdd, onDelete, onReorder,
+}: { label: string; section: ListItemSection; items: ListItem[]; onAdd: Props["onAdd"]; onDelete: Props["onDelete"]; onReorder?: Props["onReorder"] }) {
   const [draft, setDraft] = useState("");
   const groupItems = items.filter((i) => i.section === section);
 
@@ -38,17 +72,29 @@ function TagGroup({ label, section, items, onAdd, onDelete }: { label: string; s
   return (
     <div>
       <p className="mb-1.5 text-xs font-medium text-ink-900/60 dark:text-paper-50/60">{label}</p>
-      <div className="flex flex-wrap gap-1.5 mb-2">
-        {groupItems.map((item) => (
-          <span key={item.id} className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft dark:bg-accent/15 px-2.5 py-1 text-xs text-accent">
-            {item.value}
-            <button onClick={() => onDelete(item.id)} aria-label={`Remove ${item.value}`} className="text-accent/60 hover:text-accent">
-              ×
-            </button>
-          </span>
-        ))}
-        {groupItems.length === 0 && <span className="text-xs text-ink-900/35 dark:text-paper-50/35">None added</span>}
-      </div>
+      {groupItems.length === 0 ? (
+        <div className="mb-2"><span className="text-xs text-ink-900/35 dark:text-paper-50/35">None added</span></div>
+      ) : onReorder ? (
+        <SortableList
+          items={groupItems}
+          onReorder={(reordered) => onReorder(section, reordered.map((i) => i.id))}
+          strategy={rectSortingStrategy}
+          as="div"
+          className="mb-2 flex flex-wrap gap-1.5"
+          renderItem={(item) => <SortablePill key={item.id} item={item} onDelete={onDelete} />}
+        />
+      ) : (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {groupItems.map((item) => (
+            <span key={item.id} className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft dark:bg-accent/15 px-2.5 py-1 text-xs text-accent">
+              {item.value}
+              <button onClick={() => onDelete(item.id)} aria-label={`Remove ${item.value}`} className="text-accent/60 hover:text-accent">
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
       <input
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
@@ -61,7 +107,9 @@ function TagGroup({ label, section, items, onAdd, onDelete }: { label: string; s
   );
 }
 
-function LanguageGroup({ items, onAdd, onDelete }: { items: ListItem[]; onAdd: Props["onAdd"]; onDelete: Props["onDelete"] }) {
+function LanguageGroup({
+  items, onAdd, onDelete, onReorder,
+}: { items: ListItem[]; onAdd: Props["onAdd"]; onDelete: Props["onDelete"]; onReorder?: Props["onReorder"] }) {
   const [value, setValue] = useState("");
   const [proficiency, setProficiency] = useState<Proficiency>("PROFESSIONAL");
   const languages = items.filter((i) => i.section === "SPOKEN_LANGUAGE");
@@ -69,15 +117,36 @@ function LanguageGroup({ items, onAdd, onDelete }: { items: ListItem[]; onAdd: P
   return (
     <div>
       <p className="mb-1.5 text-xs font-medium text-ink-900/60 dark:text-paper-50/60">Spoken languages</p>
-      <ul className="mb-2 space-y-1">
-        {languages.map((item) => (
-          <li key={item.id} className="flex items-center justify-between rounded-lg bg-ink-900/[0.03] dark:bg-paper-50/5 px-2.5 py-1.5 text-xs">
-            <span className="text-ink-900 dark:text-paper-50">{item.value} <span className="text-ink-900/45 dark:text-paper-50/45">· {item.proficiency}</span></span>
-            <button onClick={() => onDelete(item.id)} className="text-danger hover:text-danger/80">Remove</button>
-          </li>
-        ))}
-        {languages.length === 0 && <li className="text-xs text-ink-900/35 dark:text-paper-50/35">None added</li>}
-      </ul>
+      {languages.length === 0 ? (
+        <p className="mb-2 text-xs text-ink-900/35 dark:text-paper-50/35">None added</p>
+      ) : onReorder ? (
+        <SortableList
+          items={languages}
+          onReorder={(reordered) => onReorder("SPOKEN_LANGUAGE", reordered.map((i) => i.id))}
+          className="mb-2 space-y-1"
+          renderItem={(item) => (
+            <SortableItem
+              key={item.id} id={item.id}
+              className="flex items-center justify-between rounded-lg bg-ink-900/[0.03] dark:bg-paper-50/5 px-2.5 py-1.5 text-xs"
+            >
+              <span className="flex items-center gap-2 text-ink-900 dark:text-paper-50">
+                <DragHandle />
+                {item.value} <span className="text-ink-900/45 dark:text-paper-50/45">· {item.proficiency}</span>
+              </span>
+              <button onClick={() => onDelete(item.id)} className="text-danger hover:text-danger/80">Remove</button>
+            </SortableItem>
+          )}
+        />
+      ) : (
+        <ul className="mb-2 space-y-1">
+          {languages.map((item) => (
+            <li key={item.id} className="flex items-center justify-between rounded-lg bg-ink-900/[0.03] dark:bg-paper-50/5 px-2.5 py-1.5 text-xs">
+              <span className="text-ink-900 dark:text-paper-50">{item.value} <span className="text-ink-900/45 dark:text-paper-50/45">· {item.proficiency}</span></span>
+              <button onClick={() => onDelete(item.id)} className="text-danger hover:text-danger/80">Remove</button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="flex gap-2">
         <input
           value={value}
@@ -103,16 +172,16 @@ function LanguageGroup({ items, onAdd, onDelete }: { items: ListItem[]; onAdd: P
   );
 }
 
-export function SkillsSection({ items, onAdd, onDelete }: Props) {
+export function SkillsSection({ items, onAdd, onDelete, onReorder }: Props) {
   return (
     <div className="rounded-xl2 border border-ink-900/8 dark:border-paper-50/10 bg-white dark:bg-ink-900 p-5 shadow-card">
       <h3 className="mb-1 font-display text-lg text-ink-950 dark:text-paper-50">Skills, interests & languages</h3>
-      <p className="mb-4 text-xs text-ink-900/50 dark:text-paper-50/50">Press Enter to add a tag.</p>
+      <p className="mb-4 text-xs text-ink-900/50 dark:text-paper-50/50">Press Enter to add a tag. Drag to reorder.</p>
       <div className="grid gap-5 sm:grid-cols-2">
         {SKILL_GROUPS.map((group) => (
-          <TagGroup key={group.section} label={group.label} section={group.section} items={items} onAdd={onAdd} onDelete={onDelete} />
+          <TagGroup key={group.section} label={group.label} section={group.section} items={items} onAdd={onAdd} onDelete={onDelete} onReorder={onReorder} />
         ))}
-        <LanguageGroup items={items} onAdd={onAdd} onDelete={onDelete} />
+        <LanguageGroup items={items} onAdd={onAdd} onDelete={onDelete} onReorder={onReorder} />
       </div>
     </div>
   );

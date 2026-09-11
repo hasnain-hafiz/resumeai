@@ -1,7 +1,7 @@
 import type { TemplateTheme } from "@/components/templates/templateThemes";
 import {
   AwardsBlock, CustomSectionsBlock, EducationBlock, ExperienceBlock,
-  ProjectsBlock, PublicationsBlock, ReferencesBlock, SectionHeading, SummaryBlock, VolunteerBlock,
+  orderedSections, ProjectsBlock, PublicationsBlock, ReferencesBlock, SectionHeading, SummaryBlock, VolunteerBlock,
 } from "@/components/templates/templateSections";
 import type { Resume } from "@/types/resume.types";
 
@@ -104,17 +104,20 @@ export function SidebarLayout({ resume, theme }: { resume: Resume; theme: Templa
         )}
       </aside>
 
-      {/* Main column */}
+      {/* Main column - Skills and Certifications are pinned in the sidebar above (fixed to
+          this layout's structure), so they're intentionally not part of this reordering set. */}
       <main className="p-6" style={{ backgroundColor: theme.colors.background, color: theme.colors.text }}>
         <SummaryBlock html={resume.summary} theme={theme} />
-        <ExperienceBlock items={resume.experience} theme={theme} />
-        <EducationBlock items={resume.education} theme={theme} />
-        <ProjectsBlock items={resume.projects} theme={theme} />
-        <AwardsBlock items={resume.awards} theme={theme} />
-        <PublicationsBlock items={resume.publications} theme={theme} />
-        <VolunteerBlock items={resume.volunteerExperience} theme={theme} />
-        <ReferencesBlock items={resume.references} theme={theme} />
-        <CustomSectionsBlock items={resume.customSections} theme={theme} />
+        {orderedSections(resume.sectionOrder, {
+          EXPERIENCE: <ExperienceBlock items={resume.experience} theme={theme} />,
+          EDUCATION: <EducationBlock items={resume.education} theme={theme} />,
+          PROJECTS: <ProjectsBlock items={resume.projects} theme={theme} />,
+          AWARDS: <AwardsBlock items={resume.awards} theme={theme} />,
+          PUBLICATIONS: <PublicationsBlock items={resume.publications} theme={theme} />,
+          VOLUNTEER: <VolunteerBlock items={resume.volunteerExperience} theme={theme} />,
+          REFERENCES: <ReferencesBlock items={resume.references} theme={theme} />,
+          CUSTOM_SECTIONS: <CustomSectionsBlock items={resume.customSections} theme={theme} />,
+        })}
       </main>
     </div>
   );

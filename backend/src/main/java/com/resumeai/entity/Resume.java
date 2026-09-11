@@ -74,4 +74,31 @@ public class Resume extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "template_id")
     private ResumeTemplate template;
+
+    // ---- Section display order (Feature 6) ----
+    /**
+     * Comma-separated {@link SectionKey} names controlling the order the main
+     * resume sections render in (Experience, Education, Projects, ...). Kept
+     * as a raw delimited string rather than a normalized table since it's
+     * always read/written as one complete ordering - see
+     * {@link com.resumeai.util.SectionOrderCodec} for encode/decode/validate.
+     */
+    @Column(name = "section_order", nullable = false, length = 500)
+    @Builder.Default
+    private String sectionOrder = SectionKey.defaultOrderCsv();
+
+    /** Every top-level resume section whose relative order a user can drag-and-drop rearrange. */
+    public enum SectionKey {
+        EXPERIENCE, EDUCATION, PROJECTS, SKILLS, CERTIFICATIONS,
+        AWARDS, PUBLICATIONS, VOLUNTEER, REFERENCES, CUSTOM_SECTIONS;
+
+        public static String defaultOrderCsv() {
+            StringBuilder sb = new StringBuilder();
+            for (SectionKey key : values()) {
+                if (sb.length() > 0) sb.append(',');
+                sb.append(key.name());
+            }
+            return sb.toString();
+        }
+    }
 }

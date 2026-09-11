@@ -1,10 +1,12 @@
 package com.resumeai.service;
 
 import com.resumeai.dto.request.resume.ExperienceRequest;
+import com.resumeai.dto.request.resume.ReorderRequest;
 import com.resumeai.dto.response.resume.ExperienceResponse;
 import com.resumeai.entity.Resume;
 import com.resumeai.entity.ResumeExperience;
 import com.resumeai.entity.User;
+import com.resumeai.exception.InvalidReorderException;
 import com.resumeai.exception.ResourceNotFoundException;
 import com.resumeai.mapper.ResumeMapper;
 import com.resumeai.repository.ResumeExperienceRepository;
@@ -16,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -94,6 +97,38 @@ class ResumeExperienceServiceTest {
 
         assertThatThrownBy(() -> service.update(resume.getId(), existing.getId(), user.getId(), request))
             .isInstanceOf(ResourceNotFoundException.class);
+    }
+
+    @Test
+    void reorder_assignsSortOrderByRequestedIndex() {
+        ResumeExperience first = ResumeExperience.builder().resume(resume).company("A").position("Dev").sortOrder(0).build();
+        first.setId(UUID.randomUUID());
+        ResumeExperience second = ResumeExperience.builder().resume(resume).company("B").position("Dev").sortOrder(1).build();
+        second.setId(UUID.randomUUID());
+
+        when(resumeService.getOwnedResumeOrThrow(resume.getId(), user.getId())).thenReturn(resume);
+        when(experienceRepository.findByResumeOrderBySortOrderAsc(resume)).thenReturn(List.of(first, second));
+
+        service.reorder(resume.getId(), user.getId(), new ReorderRequest(List.of(second.getId(), first.getId())));
+
+        assertThat(second.getSortOrder()).isZero();
+        assertThat(first.getSortOrder()).isEqualTo(1);
+        verify(experienceRepository).saveAll(List.of(second, first));
+    }
+
+    @Test
+    void reorder_throwsWhenOrderedIdsDoNotMatchExistingEntries() {
+        ResumeExperience existing = ResumeExperience.builder().resume(resume).company("A").position("Dev").build();
+        existing.setId(UUID.randomUUID());
+
+        when(resumeService.getOwnedResumeOrThrow(resume.getId(), user.getId())).thenReturn(resume);
+        when(experienceRepository.findByResumeOrderBySortOrderAsc(resume)).thenReturn(List.of(existing));
+
+        ReorderRequest request = new ReorderRequest(List.of(UUID.randomUUID()));
+
+        assertThatThrownBy(() -> service.reorder(resume.getId(), user.getId(), request))
+            .isInstanceOf(InvalidReorderException.class);
+        verify(experienceRepository, never()).saveAll(any());
     }
 
     @Test

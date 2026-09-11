@@ -2,6 +2,7 @@ package com.resumeai.controller;
 
 import com.resumeai.dto.request.resume.ProjectImageRequest;
 import com.resumeai.dto.request.resume.ProjectRequest;
+import com.resumeai.dto.request.resume.ReorderRequest;
 import com.resumeai.dto.response.ApiResponse;
 import com.resumeai.dto.response.resume.ProjectResponse;
 import com.resumeai.security.UserPrincipal;
@@ -46,6 +47,15 @@ public class ResumeProjectController {
     ) {
         projectService.delete(resumeId, projectId, principal.getId());
         return ResponseEntity.ok(ApiResponse.of("Project deleted."));
+    }
+
+    @PatchMapping("/reorder")
+    public ResponseEntity<ApiResponse> reorder(
+        @AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID resumeId,
+        @Valid @RequestBody ReorderRequest request
+    ) {
+        projectService.reorder(resumeId, principal.getId(), request);
+        return ResponseEntity.ok(ApiResponse.of("Project order updated."));
     }
 
     @PostMapping("/{projectId}/images")
