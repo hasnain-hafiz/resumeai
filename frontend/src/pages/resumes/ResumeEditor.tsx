@@ -8,20 +8,20 @@ import { GenericListSection } from "@/components/resume/GenericListSection";
 import { ProjectsSection } from "@/components/resume/ProjectsSection";
 import { SkillsSection } from "@/components/resume/SkillsSection";
 import { CustomSectionsEditor } from "@/components/resume/CustomSectionsEditor";
+import { SectionOrderPanel } from "@/components/resume/SectionOrderPanel";
 import { LivePreviewPanel } from "@/components/resume/LivePreviewPanel";
 import { useResume, useSectionMutations, useUpdateResumeDetails } from "@/hooks/useResumes";
+import { useReorderListItems, useReorderSectionItems, useReorderSections } from "@/hooks/useReorder";
 import {
   awardApi, certificationApi, customSectionApi, educationApi, experienceApi,
   listItemApi, projectApi, publicationApi, referenceApi, volunteerExperienceApi,
 } from "@/api/resumeSectionsApi";
 import { apiErrorMessage } from "@/hooks/useAuth";
-import type {
-  Award, Certification, Education, Experience, Project, Publication, Resume, ResumeReference, VolunteerExperience,
-} from "@/types/resume.types";
+import type { Award, Certification, Education, Experience, Project, Publication, Resume, ResumeReference, VolunteerExperience } from "@/types/resume.types";
 
 const TABS = [
   "Personal Info", "Experience", "Education", "Projects", "Skills",
-  "Certifications", "Awards", "Publications", "Volunteer", "References", "Custom Sections",
+  "Certifications", "Awards", "Publications", "Volunteer", "References", "Custom Sections", "Section Order",
 ] as const;
 type Tab = (typeof TABS)[number];
 
@@ -50,6 +50,9 @@ export default function ResumeEditorPage() {
   // API calls, just local state - so the preview reflects it immediately
   // instead of waiting for the section's mutation to round-trip and refetch.
   // A key is only present here while that section has an unsaved edit open.
+  // Skills and Custom Sections are intentionally excluded - they commit
+  // immediately rather than going through an open add/edit form, so there's
+  // no "unsaved" state for them to report.
   type SectionDrafts = {
     experience?: Experience[];
     education?: Education[];
@@ -113,6 +116,11 @@ export default function ResumeEditorPage() {
       customSectionApi.deleteItem(resumeId ?? "", sectionId, itemId),
     onSuccess: invalidate,
   });
+
+  const reorderExperience = useReorderSectionItems(resumeId ?? "", "experience", experienceApi.reorder);
+  const reorderProjects = useReorderSectionItems(resumeId ?? "", "projects", projectApi.reorder);
+  const reorderListItems = useReorderListItems(resumeId ?? "");
+  const reorderSections = useReorderSections(resumeId ?? "");
 
   if (isLoading) {
     return (
@@ -196,8 +204,9 @@ export default function ResumeEditorPage() {
               onAdd={(form) => experience.add.mutate(form)}
               onUpdate={(id, form) => experience.update.mutate({ itemId: id, payload: form })}
               onDelete={(id) => experience.remove.mutate(id)}
-              isSaving={experience.add.isPending || experience.update.isPending}
+              onReorder={(orderedIds) => reorderExperience.mutate(orderedIds)}
               onDraftItems={setSectionDraft("experience")}
+              isSaving={experience.add.isPending || experience.update.isPending}
             />
           )}
 
@@ -218,8 +227,8 @@ export default function ResumeEditorPage() {
               onAdd={(values) => education.add.mutate({ ...values, cgpa: values.cgpa ? Number(values.cgpa) : null, sortOrder: 0 } as never)}
               onUpdate={(id, values) => education.update.mutate({ itemId: id, payload: { ...values, cgpa: values.cgpa ? Number(values.cgpa) : null, sortOrder: 0 } as never })}
               onDelete={(id) => education.remove.mutate(id)}
-              isSaving={education.add.isPending || education.update.isPending}
               onDraftItems={setSectionDraft("education")}
+              isSaving={education.add.isPending || education.update.isPending}
             />
           )}
 
@@ -231,8 +240,9 @@ export default function ResumeEditorPage() {
               onDelete={(id) => projects.remove.mutate(id)}
               onAddImage={(projectId, url) => addProjectImage.mutate({ projectId, url })}
               onDeleteImage={(projectId, imageId) => deleteProjectImage.mutate({ projectId, imageId })}
-              isSaving={projects.add.isPending || projects.update.isPending}
+              onReorder={(orderedIds) => reorderProjects.mutate(orderedIds)}
               onDraftItems={setSectionDraft("projects")}
+              isSaving={projects.add.isPending || projects.update.isPending}
             />
           )}
 
@@ -241,6 +251,7 @@ export default function ResumeEditorPage() {
               items={resume.listItems}
               onAdd={(section, value, proficiency) => listItems.add.mutate({ section, value, proficiency, sortOrder: 0 })}
               onDelete={(id) => listItems.remove.mutate(id)}
+              onReorder={(section, orderedIds) => reorderListItems.mutate({ section, orderedIds })}
             />
           )}
 
@@ -259,8 +270,8 @@ export default function ResumeEditorPage() {
               onAdd={(values) => certifications.add.mutate({ ...values, sortOrder: 0 } as never)}
               onUpdate={(id, values) => certifications.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => certifications.remove.mutate(id)}
-              isSaving={certifications.add.isPending || certifications.update.isPending}
               onDraftItems={setSectionDraft("certifications")}
+              isSaving={certifications.add.isPending || certifications.update.isPending}
             />
           )}
 
@@ -279,8 +290,8 @@ export default function ResumeEditorPage() {
               onAdd={(values) => awards.add.mutate({ ...values, sortOrder: 0 } as never)}
               onUpdate={(id, values) => awards.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => awards.remove.mutate(id)}
-              isSaving={awards.add.isPending || awards.update.isPending}
               onDraftItems={setSectionDraft("awards")}
+              isSaving={awards.add.isPending || awards.update.isPending}
             />
           )}
 
@@ -300,8 +311,8 @@ export default function ResumeEditorPage() {
               onAdd={(values) => publications.add.mutate({ ...values, sortOrder: 0 } as never)}
               onUpdate={(id, values) => publications.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => publications.remove.mutate(id)}
-              isSaving={publications.add.isPending || publications.update.isPending}
               onDraftItems={setSectionDraft("publications")}
+              isSaving={publications.add.isPending || publications.update.isPending}
             />
           )}
 
@@ -321,8 +332,8 @@ export default function ResumeEditorPage() {
               onAdd={(values) => volunteer.add.mutate({ ...values, sortOrder: 0 } as never)}
               onUpdate={(id, values) => volunteer.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => volunteer.remove.mutate(id)}
-              isSaving={volunteer.add.isPending || volunteer.update.isPending}
               onDraftItems={setSectionDraft("volunteerExperience")}
+              isSaving={volunteer.add.isPending || volunteer.update.isPending}
             />
           )}
 
@@ -342,8 +353,8 @@ export default function ResumeEditorPage() {
               onAdd={(values) => references.add.mutate({ ...values, sortOrder: 0 } as never)}
               onUpdate={(id, values) => references.update.mutate({ itemId: id, payload: { ...values, sortOrder: 0 } as never })}
               onDelete={(id) => references.remove.mutate(id)}
-              isSaving={references.add.isPending || references.update.isPending}
               onDraftItems={setSectionDraft("references")}
+              isSaving={references.add.isPending || references.update.isPending}
             />
           )}
 
@@ -354,6 +365,13 @@ export default function ResumeEditorPage() {
               onDeleteSection={(id) => customSections.remove.mutate(id)}
               onAddItem={(sectionId, form) => addCustomSectionItem.mutate({ sectionId, payload: { ...form, sortOrder: 0 } })}
               onDeleteItem={(sectionId, itemId) => deleteCustomSectionItem.mutate({ sectionId, itemId })}
+            />
+          )}
+
+          {activeTab === "Section Order" && (
+            <SectionOrderPanel
+              sectionOrder={resume.sectionOrder}
+              onReorder={(newOrder) => reorderSections.mutate(newOrder)}
             />
           )}
         </div>

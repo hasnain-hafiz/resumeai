@@ -1,6 +1,7 @@
 package com.resumeai.controller;
 
 import com.resumeai.dto.request.resume.ExperienceRequest;
+import com.resumeai.dto.request.resume.ReorderRequest;
 import com.resumeai.dto.response.ApiResponse;
 import com.resumeai.dto.response.resume.ExperienceResponse;
 import com.resumeai.security.UserPrincipal;
@@ -45,5 +46,14 @@ public class ResumeExperienceController {
     ) {
         experienceService.delete(resumeId, experienceId, principal.getId());
         return ResponseEntity.ok(ApiResponse.of("Experience entry deleted."));
+    }
+
+    @PatchMapping("/reorder")
+    public ResponseEntity<ApiResponse> reorder(
+        @AuthenticationPrincipal UserPrincipal principal, @PathVariable UUID resumeId,
+        @Valid @RequestBody ReorderRequest request
+    ) {
+        experienceService.reorder(resumeId, principal.getId(), request);
+        return ResponseEntity.ok(ApiResponse.of("Experience order updated."));
     }
 }

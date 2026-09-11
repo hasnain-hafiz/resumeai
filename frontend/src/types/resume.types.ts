@@ -139,6 +139,30 @@ export interface CustomSection {
   items: CustomSectionItem[];
 }
 
+/**
+ * Every top-level resume section whose relative order a user can
+ * drag-and-drop rearrange (Feature 6). Kept in sync with the backend's
+ * {@code Resume.SectionKey} enum - see docs/FEATURE_6_REORDERING.md.
+ */
+export const SECTION_KEYS = [
+  "EXPERIENCE", "EDUCATION", "PROJECTS", "SKILLS", "CERTIFICATIONS",
+  "AWARDS", "PUBLICATIONS", "VOLUNTEER", "REFERENCES", "CUSTOM_SECTIONS",
+] as const;
+export type SectionKey = (typeof SECTION_KEYS)[number];
+
+export const SECTION_LABELS: Record<SectionKey, string> = {
+  EXPERIENCE: "Experience",
+  EDUCATION: "Education",
+  PROJECTS: "Projects",
+  SKILLS: "Skills",
+  CERTIFICATIONS: "Certifications",
+  AWARDS: "Awards",
+  PUBLICATIONS: "Publications",
+  VOLUNTEER: "Volunteer Experience",
+  REFERENCES: "References",
+  CUSTOM_SECTIONS: "Custom Sections",
+};
+
 export interface Resume {
   id: string;
   title: string;
@@ -153,6 +177,8 @@ export interface Resume {
   photoUrl: string | null;
   summary: string | null;
   template: Template | null;
+  /** Display order of the sections below, as SectionKey names. See SECTION_KEYS. */
+  sectionOrder: SectionKey[];
   experience: Experience[];
   education: Education[];
   projects: Project[];

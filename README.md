@@ -14,6 +14,8 @@ This repository is being built **feature by feature**, per the project's output 
 
 **Feature 5 — Live Preview: ✅ complete.** See [`docs/FEATURE_5_LIVE_PREVIEW.md`](docs/FEATURE_5_LIVE_PREVIEW.md) for the full write-up.
 
+**Feature 6 — Drag and Drop Reordering: ✅ complete.** See [`docs/FEATURE_6_REORDERING.md`](docs/FEATURE_6_REORDERING.md) for the full write-up.
+
 ## Tech stack
 
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, React Router, React Hook Form, TanStack Query, Axios, Zod, Zustand
@@ -60,4 +62,4 @@ cd frontend && npm run test        # frontend unit tests (added as features grow
 
 ## What's next
 
-Feature 6 — **Drag and Drop** (reordering sections, skills, projects, and experience) is next once Feature 5 is reviewed and approved. It builds on the `sortOrder` column every resume section has carried since Feature 3.
+Feature 7 — **AI Summary Generator** (the first of the AI-powered features - generating professional summaries tailored to career stage, from student/fresher through senior/architect) is next once Feature 6 is reviewed and approved. It'll introduce the AI module (OpenAI integration, prompt templates, usage tracking) that every subsequent AI feature builds on.

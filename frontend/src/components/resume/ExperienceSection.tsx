@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { EmploymentType, Experience } from "@/types/resume.types";
+import { SortableList } from "@/components/resume/dnd/SortableList";
+import { DragHandle, SortableItem } from "@/components/resume/dnd/SortableItem";
 
 const EMPLOYMENT_TYPE_LABELS: Record<EmploymentType, string> = {
   FULL_TIME: "Full-time",
@@ -30,15 +32,26 @@ interface Props {
   onAdd: (form: ExperienceForm) => void;
   onUpdate: (id: string, form: ExperienceForm) => void;
   onDelete: (id: string) => void;
-  isSaving?: boolean;
+  onReorder?: (orderedIds: string[]) => void;
   /** See GenericListSection's onDraftItems - same "unsaved form state, live" contract. */
   onDraftItems?: (items: Experience[] | undefined) => void;
+  isSaving?: boolean;
 }
 
-export function ExperienceSection({ items, onAdd, onUpdate, onDelete, isSaving, onDraftItems }: Props) {
+export function ExperienceSection({ items, onAdd, onUpdate, onDelete, onReorder, onDraftItems, isSaving }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<ExperienceForm>(emptyForm());
+
+  const startAdd = () => { setForm(emptyForm()); setAdding(true); setEditingId(null); };
+  const startEdit = (item: Experience) => {
+    const { id, ...rest } = item;
+    void id;
+    setForm({ ...rest, startDate: rest.startDate ?? "", endDate: rest.endDate ?? "" });
+    setEditingId(item.id);
+    setAdding(false);
+  };
+  const cancel = () => { setAdding(false); setEditingId(null); };
 
   useEffect(() => {
     if (!onDraftItems) return;
@@ -52,19 +65,11 @@ export function ExperienceSection({ items, onAdd, onUpdate, onDelete, isSaving, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form, adding, editingId, items]);
 
+  // Clear any leftover draft override if this section unmounts (e.g. the
+  // user switches tabs) mid-edit without saving or cancelling.
   const onDraftItemsRef = useRef(onDraftItems);
   onDraftItemsRef.current = onDraftItems;
   useEffect(() => () => onDraftItemsRef.current?.(undefined), []);
-
-  const startAdd = () => { setForm(emptyForm()); setAdding(true); setEditingId(null); };
-  const startEdit = (item: Experience) => {
-    const { id, ...rest } = item;
-    void id;
-    setForm({ ...rest, startDate: rest.startDate ?? "", endDate: rest.endDate ?? "" });
-    setEditingId(item.id);
-    setAdding(false);
-  };
-  const cancel = () => { setAdding(false); setEditingId(null); };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -91,25 +96,53 @@ export function ExperienceSection({ items, onAdd, onUpdate, onDelete, isSaving, 
       )}
 
       {!showForm && items.length > 0 && (
-        <ul className="space-y-3">
-          {items.map((item) => (
-            <li key={item.id} className="rounded-lg border border-ink-900/8 dark:border-paper-50/10 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink-900 dark:text-paper-50">{item.position} · {item.company}</p>
-                  <p className="text-xs text-ink-900/50 dark:text-paper-50/50">
-                    {formatRange(item)}{item.location ? ` · ${item.location}` : ""}
-                    {item.employmentType ? ` · ${EMPLOYMENT_TYPE_LABELS[item.employmentType]}` : ""}
-                  </p>
+        onReorder ? (
+          <SortableList
+            items={items}
+            onReorder={(reordered) => onReorder(reordered.map((i) => i.id))}
+            className="space-y-3"
+            renderItem={(item) => (
+              <SortableItem key={item.id} id={item.id} className="rounded-lg border border-ink-900/8 dark:border-paper-50/10 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <DragHandle className="mt-0.5 shrink-0 cursor-grab touch-none text-ink-900/30 hover:text-ink-900/60 active:cursor-grabbing dark:text-paper-50/30 dark:hover:text-paper-50/60" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-ink-900 dark:text-paper-50">{item.position} · {item.company}</p>
+                      <p className="text-xs text-ink-900/50 dark:text-paper-50/50">
+                        {formatRange(item)}{item.location ? ` · ${item.location}` : ""}
+                        {item.employmentType ? ` · ${EMPLOYMENT_TYPE_LABELS[item.employmentType]}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-3 text-xs">
+                    <button onClick={() => startEdit(item)} className="font-medium text-accent hover:text-accent-hover">Edit</button>
+                    <button onClick={() => onDelete(item.id)} className="font-medium text-danger hover:text-danger/80">Delete</button>
+                  </div>
                 </div>
-                <div className="flex shrink-0 gap-3 text-xs">
-                  <button onClick={() => startEdit(item)} className="font-medium text-accent hover:text-accent-hover">Edit</button>
-                  <button onClick={() => onDelete(item.id)} className="font-medium text-danger hover:text-danger/80">Delete</button>
+              </SortableItem>
+            )}
+          />
+        ) : (
+          <ul className="space-y-3">
+            {items.map((item) => (
+              <li key={item.id} className="rounded-lg border border-ink-900/8 dark:border-paper-50/10 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink-900 dark:text-paper-50">{item.position} · {item.company}</p>
+                    <p className="text-xs text-ink-900/50 dark:text-paper-50/50">
+                      {formatRange(item)}{item.location ? ` · ${item.location}` : ""}
+                      {item.employmentType ? ` · ${EMPLOYMENT_TYPE_LABELS[item.employmentType]}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 gap-3 text-xs">
+                    <button onClick={() => startEdit(item)} className="font-medium text-accent hover:text-accent-hover">Edit</button>
+                    <button onClick={() => onDelete(item.id)} className="font-medium text-danger hover:text-danger/80">Delete</button>
+                  </div>
                 </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        )
       )}
 
       {showForm && (

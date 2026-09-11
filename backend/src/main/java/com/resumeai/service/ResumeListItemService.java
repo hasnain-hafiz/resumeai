@@ -1,16 +1,19 @@
 package com.resumeai.service;
 
 import com.resumeai.dto.request.resume.ListItemRequest;
+import com.resumeai.dto.request.resume.ReorderListItemsRequest;
 import com.resumeai.dto.response.resume.ListItemResponse;
 import com.resumeai.entity.Resume;
 import com.resumeai.entity.ResumeListItem;
 import com.resumeai.exception.ResourceNotFoundException;
 import com.resumeai.mapper.ResumeMapper;
 import com.resumeai.repository.ResumeListItemRepository;
+import com.resumeai.util.ReorderSupport;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -44,6 +47,28 @@ public class ResumeListItemService {
         entity.setProficiency(request.section() == ResumeListItem.Section.SPOKEN_LANGUAGE ? request.proficiency() : null);
         entity.setSortOrder(request.sortOrder());
         return resumeMapper.toListItemResponse(listItemRepository.save(entity));
+    }
+
+    /**
+     * Scoped to one {@link ResumeListItem.Section} at a time (e.g. just
+     * TECHNICAL_SKILL) since each group renders and drags independently in
+     * the UI - {@code orderedIds} only needs to (and must) cover that one
+     * group's items, not every list item on the resume.
+     */
+    @Transactional
+    public void reorder(UUID resumeId, UUID userId, ReorderListItemsRequest request) {
+        Resume resume = resumeService.getOwnedResumeOrThrow(resumeId, userId);
+        List<ResumeListItem> existingInGroup = listItemRepository
+            .findByResumeOrderBySectionAscSortOrderAsc(resume).stream()
+            .filter(item -> item.getSection() == request.section())
+            .toList();
+
+        List<ResumeListItem> ordered = ReorderSupport.reorder(existingInGroup, request.orderedIds(), ResumeListItem::getId);
+
+        for (int i = 0; i < ordered.size(); i++) {
+            ordered.get(i).setSortOrder(i);
+        }
+        listItemRepository.saveAll(ordered);
     }
 
     @Transactional

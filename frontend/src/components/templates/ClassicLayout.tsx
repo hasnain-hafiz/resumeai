@@ -1,7 +1,7 @@
 import type { TemplateTheme } from "@/components/templates/templateThemes";
 import {
   AwardsBlock, CertificationsBlock, CustomSectionsBlock, EducationBlock, ExperienceBlock,
-  ProjectsBlock, PublicationsBlock, ReferencesBlock, SkillsBlock, SummaryBlock, VolunteerBlock,
+  orderedSections, ProjectsBlock, PublicationsBlock, ReferencesBlock, SkillsBlock, SummaryBlock, VolunteerBlock,
 } from "@/components/templates/templateSections";
 import type { Resume } from "@/types/resume.types";
 
@@ -31,16 +31,18 @@ export function ClassicLayout({ resume, theme }: { resume: Resume; theme: Templa
       </header>
 
       <SummaryBlock html={resume.summary} theme={theme} />
-      <ExperienceBlock items={resume.experience} theme={theme} />
-      <EducationBlock items={resume.education} theme={theme} />
-      <ProjectsBlock items={resume.projects} theme={theme} />
-      <SkillsBlock items={resume.listItems} theme={theme} layout={theme.skillsLayout} />
-      <CertificationsBlock items={resume.certifications} theme={theme} />
-      <AwardsBlock items={resume.awards} theme={theme} />
-      <PublicationsBlock items={resume.publications} theme={theme} />
-      <VolunteerBlock items={resume.volunteerExperience} theme={theme} />
-      <ReferencesBlock items={resume.references} theme={theme} />
-      <CustomSectionsBlock items={resume.customSections} theme={theme} />
+      {orderedSections(resume.sectionOrder, {
+        EXPERIENCE: <ExperienceBlock items={resume.experience} theme={theme} />,
+        EDUCATION: <EducationBlock items={resume.education} theme={theme} />,
+        PROJECTS: <ProjectsBlock items={resume.projects} theme={theme} />,
+        SKILLS: <SkillsBlock items={resume.listItems} theme={theme} layout={theme.skillsLayout} />,
+        CERTIFICATIONS: <CertificationsBlock items={resume.certifications} theme={theme} />,
+        AWARDS: <AwardsBlock items={resume.awards} theme={theme} />,
+        PUBLICATIONS: <PublicationsBlock items={resume.publications} theme={theme} />,
+        VOLUNTEER: <VolunteerBlock items={resume.volunteerExperience} theme={theme} />,
+        REFERENCES: <ReferencesBlock items={resume.references} theme={theme} />,
+        CUSTOM_SECTIONS: <CustomSectionsBlock items={resume.customSections} theme={theme} />,
+      })}
     </div>
   );
 }

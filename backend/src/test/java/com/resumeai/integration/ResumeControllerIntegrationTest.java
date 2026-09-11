@@ -263,4 +263,128 @@ class ResumeControllerIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.template").doesNotExist());
     }
+
+    @Test
+    void reorderingSectionsAndItemsPersists() throws Exception {
+        String token = registerVerifyAndLogin("reorder-user@example.com");
+        String auth = "Bearer " + token;
+
+        String createResponse = mockMvc.perform(post("/api/v1/resumes")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(new CreateResumeRequest("Reorder Test Resume"))))
+            .andReturn().getResponse().getContentAsString();
+        String resumeId = objectMapper.readTree(createResponse).get("id").asText();
+
+        // Two experience entries, added in order [Acme, Globex]
+        String acmeId = addExperience(auth, resumeId, "Acme Corp");
+        String globexId = addExperience(auth, resumeId, "Globex Corp");
+
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.experience[0].company").value("Acme Corp"))
+            .andExpect(jsonPath("$.experience[1].company").value("Globex Corp"));
+
+        // Reorder to [Globex, Acme]
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/experience/reorder")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"orderedIds\":[\"" + globexId + "\",\"" + acmeId + "\"]}"))
+            .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.experience[0].company").value("Globex Corp"))
+            .andExpect(jsonPath("$.experience[1].company").value("Acme Corp"));
+
+        // A reorder that doesn't cover every existing entry is rejected, and leaves the order untouched
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/experience/reorder")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"orderedIds\":[\"" + globexId + "\"]}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REORDER"));
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.experience[0].company").value("Globex Corp"));
+
+        // Two projects, reordered the same way
+        ProjectRequest projectA = new ProjectRequest("Alpha", null, null, null, null, 0);
+        ProjectRequest projectB = new ProjectRequest("Beta", null, null, null, null, 0);
+        String projectAId = objectMapper.readTree(
+            mockMvc.perform(post("/api/v1/resumes/" + resumeId + "/projects")
+                    .header("Authorization", auth).contentType("application/json")
+                    .content(objectMapper.writeValueAsString(projectA)))
+                .andReturn().getResponse().getContentAsString()
+        ).get("id").asText();
+        String projectBId = objectMapper.readTree(
+            mockMvc.perform(post("/api/v1/resumes/" + resumeId + "/projects")
+                    .header("Authorization", auth).contentType("application/json")
+                    .content(objectMapper.writeValueAsString(projectB)))
+                .andReturn().getResponse().getContentAsString()
+        ).get("id").asText();
+
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/projects/reorder")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"orderedIds\":[\"" + projectBId + "\",\"" + projectAId + "\"]}"))
+            .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.projects[0].title").value("Beta"))
+            .andExpect(jsonPath("$.projects[1].title").value("Alpha"));
+
+        // Skills: two items in the same group, reordered within that group
+        String rustId = objectMapper.readTree(
+            mockMvc.perform(post("/api/v1/resumes/" + resumeId + "/list-items")
+                    .header("Authorization", auth).contentType("application/json")
+                    .content(objectMapper.writeValueAsString(
+                        new ListItemRequest(ResumeListItem.Section.PROGRAMMING_LANGUAGE, "Rust", null, 0))))
+                .andReturn().getResponse().getContentAsString()
+        ).get("id").asText();
+        String goId = objectMapper.readTree(
+            mockMvc.perform(post("/api/v1/resumes/" + resumeId + "/list-items")
+                    .header("Authorization", auth).contentType("application/json")
+                    .content(objectMapper.writeValueAsString(
+                        new ListItemRequest(ResumeListItem.Section.PROGRAMMING_LANGUAGE, "Go", null, 0))))
+                .andReturn().getResponse().getContentAsString()
+        ).get("id").asText();
+
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/list-items/reorder")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"section\":\"PROGRAMMING_LANGUAGE\",\"orderedIds\":[\"" + goId + "\",\"" + rustId + "\"]}"))
+            .andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.listItems[0].value").value("Go"))
+            .andExpect(jsonPath("$.listItems[1].value").value("Rust"));
+
+        // Section order: defaults to the canonical order, then can be rearranged
+        mockMvc.perform(get("/api/v1/resumes/" + resumeId).header("Authorization", auth))
+            .andExpect(jsonPath("$.sectionOrder[0]").value("EXPERIENCE"))
+            .andExpect(jsonPath("$.sectionOrder[1]").value("EDUCATION"));
+
+        String reordered = "{\"sectionOrder\":[\"SKILLS\",\"EXPERIENCE\",\"EDUCATION\",\"PROJECTS\","
+            + "\"CERTIFICATIONS\",\"AWARDS\",\"PUBLICATIONS\",\"VOLUNTEER\",\"REFERENCES\",\"CUSTOM_SECTIONS\"]}";
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/sections/reorder")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content(reordered))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.sectionOrder[0]").value("SKILLS"));
+
+        // An incomplete/invalid section order is rejected
+        mockMvc.perform(patch("/api/v1/resumes/" + resumeId + "/sections/reorder")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content("{\"sectionOrder\":[\"SKILLS\",\"EXPERIENCE\"]}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("INVALID_REORDER"));
+    }
+
+    private String addExperience(String auth, String resumeId, String company) throws Exception {
+        ExperienceRequest request = new ExperienceRequest(company, "Engineer", null, null, null, null, false, null, null, 0);
+        String response = mockMvc.perform(post("/api/v1/resumes/" + resumeId + "/experience")
+                .header("Authorization", auth)
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(request)))
+            .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(response).get("id").asText();
+    }
 }

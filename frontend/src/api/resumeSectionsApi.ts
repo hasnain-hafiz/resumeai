@@ -7,6 +7,7 @@ import type {
   Education,
   Experience,
   ListItem,
+  ListItemSection,
   Project,
   Publication,
   ResumeReference,
@@ -20,7 +21,14 @@ export const awardApi = createSectionApi<Omit<Award, "id">, Award>("awards");
 export const publicationApi = createSectionApi<Omit<Publication, "id">, Publication>("publications");
 export const volunteerExperienceApi = createSectionApi<Omit<VolunteerExperience, "id">, VolunteerExperience>("volunteer-experience");
 export const referenceApi = createSectionApi<Omit<ResumeReference, "id">, ResumeReference>("references");
-export const listItemApi = createSectionApi<Omit<ListItem, "id">, ListItem>("list-items");
+
+// List items (skills/tools/.../spoken languages) render as independent groups by `section`, so
+// reordering is scoped to one group at a time rather than the generic whole-list reorder shape.
+export const listItemApi = {
+  ...createSectionApi<Omit<ListItem, "id">, ListItem>("list-items"),
+  reorder: (resumeId: string, section: ListItemSection, orderedIds: string[]) =>
+    apiClient.patch(`/resumes/${resumeId}/list-items/reorder`, { section, orderedIds }).then((r) => r.data),
+};
 
 // Projects: same add/update/delete shape, plus a nested images sub-resource -
 // both return the whole updated Project (with its images array), not just the image.

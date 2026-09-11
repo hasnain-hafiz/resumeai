@@ -1,6 +1,7 @@
 package com.resumeai.service.impl;
 
 import com.resumeai.dto.request.resume.CreateResumeRequest;
+import com.resumeai.dto.request.resume.SectionOrderRequest;
 import com.resumeai.dto.request.resume.SelectTemplateRequest;
 import com.resumeai.dto.request.resume.UpdateResumeDetailsRequest;
 import com.resumeai.dto.response.resume.*;
@@ -10,6 +11,7 @@ import com.resumeai.mapper.ResumeMapper;
 import com.resumeai.repository.*;
 import com.resumeai.service.ActivityEventService;
 import com.resumeai.service.ResumeService;
+import com.resumeai.util.SectionOrderCodec;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -117,6 +119,18 @@ public class ResumeServiceImpl implements ResumeService {
 
     @Override
     @Transactional
+    public ResumeResponse reorderSections(UUID resumeId, UUID userId, SectionOrderRequest request) {
+        Resume resume = getOwnedResumeOrThrow(resumeId, userId);
+
+        SectionOrderCodec.validate(request.sectionOrder());
+        resume.setSectionOrder(SectionOrderCodec.encode(request.sectionOrder()));
+        resumeRepository.save(resume);
+
+        return assembleResponse(resume);
+    }
+
+    @Override
+    @Transactional
     public void delete(UUID resumeId, UUID userId) {
         Resume resume = getOwnedResumeOrThrow(resumeId, userId);
         resume.markDeleted(); // soft delete; child rows remain but become invisible via cascading queries on resume
@@ -165,6 +179,7 @@ public class ResumeServiceImpl implements ResumeService {
             resume.getPhotoUrl(),
             resume.getSummary(),
             resumeMapper.toTemplateResponse(resume.getTemplate()),
+            SectionOrderCodec.decode(resume.getSectionOrder()),
             resumeMapper.toExperienceResponseList(experienceRepository.findByResumeOrderBySortOrderAsc(resume)),
             resumeMapper.toEducationResponseList(educationRepository.findByResumeOrderBySortOrderAsc(resume)),
             projects,

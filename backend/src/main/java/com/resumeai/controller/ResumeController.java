@@ -1,6 +1,7 @@
 package com.resumeai.controller;
 
 import com.resumeai.dto.request.resume.CreateResumeRequest;
+import com.resumeai.dto.request.resume.SectionOrderRequest;
 import com.resumeai.dto.request.resume.SelectTemplateRequest;
 import com.resumeai.dto.request.resume.UpdateResumeDetailsRequest;
 import com.resumeai.dto.response.ApiResponse;
@@ -69,6 +70,16 @@ public class ResumeController {
         @Valid @RequestBody SelectTemplateRequest request
     ) {
         return ResponseEntity.ok(resumeService.selectTemplate(resumeId, principal.getId(), request));
+    }
+
+    @PatchMapping("/{resumeId}/sections/reorder")
+    @Operation(summary = "Set the display order of the top-level resume sections (Experience, Education, Projects, ...)")
+    public ResponseEntity<ResumeResponse> reorderSections(
+        @AuthenticationPrincipal UserPrincipal principal,
+        @PathVariable UUID resumeId,
+        @Valid @RequestBody SectionOrderRequest request
+    ) {
+        return ResponseEntity.ok(resumeService.reorderSections(resumeId, principal.getId(), request));
     }
 
     @DeleteMapping("/{resumeId}")

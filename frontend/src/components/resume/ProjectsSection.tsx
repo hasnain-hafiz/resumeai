@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Project } from "@/types/resume.types";
+import { SortableList } from "@/components/resume/dnd/SortableList";
+import { DragHandle, SortableItem } from "@/components/resume/dnd/SortableItem";
 
 type ProjectForm = { title: string; description: string; technologies: string; githubUrl: string; liveUrl: string; sortOrder: number };
 
@@ -14,16 +16,28 @@ interface Props {
   onDelete: (id: string) => void;
   onAddImage: (projectId: string, url: string) => void;
   onDeleteImage: (projectId: string, imageId: string) => void;
-  isSaving?: boolean;
+  onReorder?: (orderedIds: string[]) => void;
   /** See GenericListSection's onDraftItems - same "unsaved form state, live" contract. */
   onDraftItems?: (items: Project[] | undefined) => void;
+  isSaving?: boolean;
 }
 
-export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, onDeleteImage, isSaving, onDraftItems }: Props) {
+export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, onDeleteImage, onReorder, onDraftItems, isSaving }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<ProjectForm>(emptyForm());
   const [imageUrlDraft, setImageUrlDraft] = useState<Record<string, string>>({});
+
+  const startAdd = () => { setForm(emptyForm()); setAdding(true); setEditingId(null); };
+  const startEdit = (item: Project) => {
+    setForm({
+      title: item.title, description: item.description ?? "", technologies: item.technologies ?? "",
+      githubUrl: item.githubUrl ?? "", liveUrl: item.liveUrl ?? "", sortOrder: item.sortOrder,
+    });
+    setEditingId(item.id);
+    setAdding(false);
+  };
+  const cancel = () => { setAdding(false); setEditingId(null); };
 
   useEffect(() => {
     if (!onDraftItems) return;
@@ -40,17 +54,6 @@ export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, 
   const onDraftItemsRef = useRef(onDraftItems);
   onDraftItemsRef.current = onDraftItems;
   useEffect(() => () => onDraftItemsRef.current?.(undefined), []);
-
-  const startAdd = () => { setForm(emptyForm()); setAdding(true); setEditingId(null); };
-  const startEdit = (item: Project) => {
-    setForm({
-      title: item.title, description: item.description ?? "", technologies: item.technologies ?? "",
-      githubUrl: item.githubUrl ?? "", liveUrl: item.liveUrl ?? "", sortOrder: item.sortOrder,
-    });
-    setEditingId(item.id);
-    setAdding(false);
-  };
-  const cancel = () => { setAdding(false); setEditingId(null); };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -77,60 +80,43 @@ export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, 
       )}
 
       {!showForm && items.length > 0 && (
-        <ul className="space-y-4">
-          {items.map((item) => (
-            <li key={item.id} className="rounded-lg border border-ink-900/8 dark:border-paper-50/10 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-ink-900 dark:text-paper-50">{item.title}</p>
-                  {item.technologies && <p className="text-xs text-ink-900/50 dark:text-paper-50/50">{item.technologies}</p>}
-                </div>
-                <div className="flex shrink-0 gap-3 text-xs">
-                  <button onClick={() => startEdit(item)} className="font-medium text-accent hover:text-accent-hover">Edit</button>
-                  <button onClick={() => onDelete(item.id)} className="font-medium text-danger hover:text-danger/80">Delete</button>
-                </div>
-              </div>
-
-              {/* Image URLs - actual file upload belongs to the Storage/Cloudinary feature; for now, paste a hosted URL. */}
-              <div className="mt-3 border-t border-ink-900/8 dark:border-paper-50/10 pt-3">
-                <p className="mb-2 text-xs font-medium text-ink-900/60 dark:text-paper-50/60">Images</p>
-                {item.images.length > 0 && (
-                  <ul className="mb-2 space-y-1">
-                    {item.images.map((img) => (
-                      <li key={img.id} className="flex items-center justify-between gap-2 text-xs text-ink-900/70 dark:text-paper-50/70">
-                        <span className="truncate">{img.url}</span>
-                        <button onClick={() => onDeleteImage(item.id, img.id)} className="shrink-0 text-danger hover:text-danger/80">
-                          Remove
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    placeholder="https://..."
-                    value={imageUrlDraft[item.id] ?? ""}
-                    onChange={(e) => setImageUrlDraft((d) => ({ ...d, [item.id]: e.target.value }))}
-                    className="flex-1 rounded-lg border border-ink-900/10 dark:border-paper-50/10 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-xs text-ink-950 dark:text-paper-50 outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
-                  />
-                  <button
-                    onClick={() => {
-                      const url = imageUrlDraft[item.id];
-                      if (url) {
-                        onAddImage(item.id, url);
-                        setImageUrlDraft((d) => ({ ...d, [item.id]: "" }));
-                      }
-                    }}
-                    className="rounded-lg bg-ink-900/[0.06] dark:bg-paper-50/10 px-3 py-1.5 text-xs font-medium text-ink-900 dark:text-paper-50 hover:bg-ink-900/10"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
+        onReorder ? (
+          <SortableList
+            items={items}
+            onReorder={(reordered) => onReorder(reordered.map((i) => i.id))}
+            className="space-y-4"
+            renderItem={(item) => (
+              <SortableItem key={item.id} id={item.id} className="rounded-lg border border-ink-900/8 dark:border-paper-50/10 p-3">
+                <ProjectRow
+                  item={item}
+                  onEdit={() => startEdit(item)}
+                  onDelete={() => onDelete(item.id)}
+                  onAddImage={onAddImage}
+                  onDeleteImage={onDeleteImage}
+                  imageUrlDraft={imageUrlDraft}
+                  setImageUrlDraft={setImageUrlDraft}
+                  dragHandle={<DragHandle />}
+                />
+              </SortableItem>
+            )}
+          />
+        ) : (
+          <ul className="space-y-4">
+            {items.map((item) => (
+              <li key={item.id} className="rounded-lg border border-ink-900/8 dark:border-paper-50/10 p-3">
+                <ProjectRow
+                  item={item}
+                  onEdit={() => startEdit(item)}
+                  onDelete={() => onDelete(item.id)}
+                  onAddImage={onAddImage}
+                  onDeleteImage={onDeleteImage}
+                  imageUrlDraft={imageUrlDraft}
+                  setImageUrlDraft={setImageUrlDraft}
+                />
+              </li>
+            ))}
+          </ul>
+        )
       )}
 
       {showForm && (
@@ -153,6 +139,75 @@ export function ProjectsSection({ items, onAdd, onUpdate, onDelete, onAddImage, 
         </form>
       )}
     </div>
+  );
+}
+
+function ProjectRow({
+  item, onEdit, onDelete, onAddImage, onDeleteImage, imageUrlDraft, setImageUrlDraft, dragHandle,
+}: {
+  item: Project;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddImage: (projectId: string, url: string) => void;
+  onDeleteImage: (projectId: string, imageId: string) => void;
+  imageUrlDraft: Record<string, string>;
+  setImageUrlDraft: (updater: (d: Record<string, string>) => Record<string, string>) => void;
+  dragHandle?: React.ReactNode;
+}) {
+  return (
+    <>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2">
+          {dragHandle}
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-ink-900 dark:text-paper-50">{item.title}</p>
+            {item.technologies && <p className="text-xs text-ink-900/50 dark:text-paper-50/50">{item.technologies}</p>}
+          </div>
+        </div>
+        <div className="flex shrink-0 gap-3 text-xs">
+          <button onClick={onEdit} className="font-medium text-accent hover:text-accent-hover">Edit</button>
+          <button onClick={onDelete} className="font-medium text-danger hover:text-danger/80">Delete</button>
+        </div>
+      </div>
+
+      {/* Image URLs - actual file upload belongs to the Storage/Cloudinary feature; for now, paste a hosted URL. */}
+      <div className="mt-3 border-t border-ink-900/8 dark:border-paper-50/10 pt-3">
+        <p className="mb-2 text-xs font-medium text-ink-900/60 dark:text-paper-50/60">Images</p>
+        {item.images.length > 0 && (
+          <ul className="mb-2 space-y-1">
+            {item.images.map((img) => (
+              <li key={img.id} className="flex items-center justify-between gap-2 text-xs text-ink-900/70 dark:text-paper-50/70">
+                <span className="truncate">{img.url}</span>
+                <button onClick={() => onDeleteImage(item.id, img.id)} className="shrink-0 text-danger hover:text-danger/80">
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex gap-2">
+          <input
+            type="url"
+            placeholder="https://..."
+            value={imageUrlDraft[item.id] ?? ""}
+            onChange={(e) => setImageUrlDraft((d) => ({ ...d, [item.id]: e.target.value }))}
+            className="flex-1 rounded-lg border border-ink-900/10 dark:border-paper-50/10 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-xs text-ink-950 dark:text-paper-50 outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
+          />
+          <button
+            onClick={() => {
+              const url = imageUrlDraft[item.id];
+              if (url) {
+                onAddImage(item.id, url);
+                setImageUrlDraft((d) => ({ ...d, [item.id]: "" }));
+              }
+            }}
+            className="rounded-lg bg-ink-900/[0.06] dark:bg-paper-50/10 px-3 py-1.5 text-xs font-medium text-ink-900 dark:text-paper-50 hover:bg-ink-900/10"
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
