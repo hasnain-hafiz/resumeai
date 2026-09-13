@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { RichTextEditor } from "@/components/resume/RichTextEditor";
+import { SummaryGeneratorPanel } from "@/components/resume/ai/SummaryGeneratorPanel";
 import type { Resume } from "@/types/resume.types";
 
 type DetailsForm = {
@@ -92,6 +93,7 @@ export function PersonalInfoSection({
         <p className="mb-3 text-xs text-ink-900/50 dark:text-paper-50/50">
           A short pitch at the top of your resume - 2 to 4 sentences works best.
         </p>
+        <SummaryGeneratorPanel resumeId={resume.id} onApply={set("summary")} />
         <RichTextEditor value={form.summary} onChange={set("summary")} placeholder="Write a brief summary of your experience..." />
       </div>
 
